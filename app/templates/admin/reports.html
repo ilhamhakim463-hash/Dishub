@@ -1,0 +1,320 @@
+{% extends "admin/admin_layout.html" %}
+{% block title %}Log Laporan Warga | EnterpriseOS{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 px-3 px-md-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">Log Laporan Warga</h2>
+            <p class="text-muted mb-0">Manajemen moderasi, arsip, dan filter data laporan terpadu.</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center flex-wrap">
+            <button class="btn btn-white bg-white border shadow-sm px-3 rounded-3" onclick="window.print()">
+                <i class="bi bi-printer me-2"></i>Cetak
+            </button>
+            <a href="{{ url_for('admin.archived_reports') }}" class="btn btn-dark shadow-sm px-3 position-relative rounded-3">
+                <i class="bi bi-archive me-2"></i>Gudang Arsip
+                {% if arch_count and arch_count > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light" style="font-size: 0.65rem;">
+                    {{ arch_count }}
+                </span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('admin.export_excel') }}" class="btn btn-success shadow-sm px-3 rounded-3">
+                <i class="bi bi-file-earmark-excel me-2"></i>Export Excel
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+        <div class="card-body p-4">
+            <form method="GET" action="{{ url_for('admin.reports') }}" class="row g-3 align-items-end">
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Kategori</label>
+                    <div class="dropdown">
+                        <button class="btn btn-white w-100 d-flex justify-content-between align-items-center border shadow-sm py-2 px-3 dropdown-toggle rounded-3 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="text-truncate">
+                                {% if request.args.get('kategori') and request.args.get('kategori') != 'Semua Kategori' %}
+                                    {{ request.args.get('kategori') }}
+                                {% else %}
+                                    Semua Kategori
+                                {% endif %}
+                            </span>
+                        </button>
+                        <ul class="dropdown-menu w-100 shadow-lg border-0 mt-2 p-2" style="border-radius: 12px; max-height: 400px; overflow-y: auto;">
+                            <li>
+                                <a class="dropdown-item rounded-3 py-2" href="{{ url_for('admin.reports', status=request.args.get('status'), search=request.args.get('search')) }}">
+                                    Semua Kategori
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider opacity-50"></li>
+
+                            {% for cat in categories %}
+                            <li>
+                                <a class="dropdown-item rounded-3 py-2 d-flex justify-content-between align-items-center"
+                                   href="{{ url_for('admin.reports', kategori=cat.name, status=request.args.get('status'), search=request.args.get('search')) }}">
+                                    {{ cat.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+
+                            <li><hr class="dropdown-divider opacity-50"></li>
+                            <li>
+                                <button type="button" class="dropdown-item rounded-3 py-2 text-primary fw-bold" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                                    <i class="bi bi-plus-circle-fill me-2"></i>Tambah Kategori Baru
+                                </button>
+                            </li>
+                        </ul>
+                        <input type="hidden" name="kategori" value="{{ request.args.get('kategori', 'Semua Kategori') }}">
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Status Laporan</label>
+                    <select name="status" class="form-select border-light-subtle shadow-sm bg-white rounded-3">
+                        <option value="Semua Status">Semua Status</option>
+                        <option value="merah" {% if request.args.get('status') == 'merah' %}selected{% endif %}>🔴 Darurat (Merah)</option>
+                        <option value="kuning" {% if request.args.get('status') == 'kuning' %}selected{% endif %}>🟡 Proses (Kuning)</option>
+                        <option value="biru" {% if request.args.get('status') == 'biru' %}selected{% endif %}>🔵 Selesai (Biru)</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-bold text-muted text-uppercase">Cari Kata Kunci</label>
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-end-0 rounded-start-3"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0 py-2 rounded-end-3" placeholder="Judul atau lokasi..." value="{{ request.args.get('search', '') }}">
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 shadow-sm fw-bold py-2 rounded-3">Filter</button>
+                    <a href="{{ url_for('admin.reports') }}" class="btn btn-light border shadow-sm px-3 py-2 rounded-3" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm" style="border-radius: 16px; overflow: hidden;">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted small text-uppercase fw-bold">
+                    <tr>
+                        <th class="ps-4 py-3 border-0">ID</th>
+                        <th class="border-0">Laporan</th>
+                        <th class="border-0">Pelapor</th>
+                        <th class="border-0 text-center">Urgency</th>
+                        <th class="border-0 text-center">Status</th>
+                        <th class="border-0 text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for report in reports %}
+                    <tr class="{% if report.is_archived %}opacity-50 bg-light-subtle{% endif %}">
+                        <td class="ps-4 text-muted small fw-bold">#{{ report.id }}</td>
+                        <td>
+                            <div class="fw-bold text-dark text-truncate mb-0" style="max-width: 220px;">{{ report.judul }}</div>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ report.created_at.strftime('%d %b %Y') }}</small>
+                                <span class="badge bg-light text-dark border-0 fw-normal px-2 py-1" style="font-size: 0.65rem;">{{ report.kategori }}</span>
+                                {% if report.is_archived %}
+                                <span class="badge bg-dark text-white" style="font-size: 0.6rem;"><i class="bi bi-archive-fill"></i> ARSIP</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-circle me-2 bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px; font-size: 0.8rem; font-weight: 700;">
+                                    {{ report.author.nama[0]|upper if report.author else 'A' }}
+                                </div>
+                                <span class="small fw-bold text-dark">{{ report.author.nama if report.author else 'Anonim' }}</span>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if report.status_warna == 'merah' %}
+                            <span class="badge-urgency bg-danger-soft text-danger blink-soft">DARURAT</span>
+                            {% else %}
+                            <span class="badge-urgency bg-success-soft text-success">BIASA</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% set status_col = report.status_warna|lower if report.status_warna else 'abu' %}
+                            <span class="badge status-pill bg-{{ status_col if status_col in ['merah', 'kuning', 'biru'] else 'abu' }} rounded-pill px-3 py-2">
+                                {% if status_col == 'merah' %}DARURAT
+                                {% elif status_col == 'kuning' %}PROSES
+                                {% elif status_col == 'biru' %}SELESAI
+                                {% else %}PENDING{% endif %}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-1">
+                                <a href="{{ url_for('admin.view_report', report_id=report.id) }}" class="btn btn-action shadow-sm" title="Detail">
+                                    <i class="bi bi-eye text-primary"></i>
+                                </a>
+
+                                {% if not report.is_approved %}
+                                <button class="btn btn-action shadow-sm" onclick="processReport({{ report.id }}, 'approve')" title="Setujui">
+                                    <i class="bi bi-check-circle text-success"></i>
+                                </button>
+                                <button class="btn btn-action shadow-sm" onclick="processReport({{ report.id }}, 'reject-hoax')" title="Tanda Hoaks">
+                                    <i class="bi bi-shield-x text-warning"></i>
+                                </button>
+                                {% endif %}
+
+                                <button class="btn btn-action shadow-sm" onclick="archiveReport({{ report.id }}, '{{ 'unarchive' if report.is_archived else 'archive' }}')" title="{{ 'Pulihkan' if report.is_archived else 'Arsipkan' }}">
+                                    <i class="bi {{ 'bi-arrow-up-circle text-success' if report.is_archived else 'bi-archive text-secondary' }}"></i>
+                                </button>
+
+                                <button class="btn btn-action shadow-sm" onclick="deleteReport({{ report.id }})" title="Hapus Permanen">
+                                    <i class="bi bi-trash text-danger"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="bi bi-inbox display-1 text-light d-block mb-3 opacity-25"></i>
+                            <h5 class="text-muted">Log Laporan Kosong</h5>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {% if pagination and pagination.pages > 1 %}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 gap-3">
+        <div class="text-muted small">
+            Menampilkan <b>{{ (pagination.page - 1) * pagination.per_page + 1 }} - {{ (pagination.page - 1) * pagination.per_page + reports|length }}</b> dari <b>{{ pagination.total }}</b> laporan
+        </div>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0 shadow-sm rounded-pill overflow-hidden">
+                <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+                    <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}">
+                        <i class="bi bi-chevron-left me-1"></i> Sebelumnya
+                    </a>
+                </li>
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {{ 'active' if page_num == pagination.page }}">
+                            <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=page_num, **request.args) }}">{{ page_num }}</a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled"><span class="page-link py-2 px-3">...</span></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+                    <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}">
+                        Selanjutnya <i class="bi bi-chevron-right ms-1"></i>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
+            <div class="modal-header border-0 pt-4 px-4">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-tag-fill text-primary me-2"></i>Tambah Kategori Baru</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('admin.master_kategori') }}" method="POST">
+                <div class="modal-body px-4 pt-3">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted text-uppercase">Nama Kategori</label>
+                        <input type="text" name="nama" class="form-control py-2 px-3 border-light-subtle rounded-3"
+                               placeholder="Contoh: Lampu Jalan Padam" required>
+                        <div class="form-text small text-muted mt-2">Kategori ini akan langsung muncul di sistem filter dan master data.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light px-4 fw-bold rounded-3" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm">Simpan Kategori</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    body { background-color: #f8f9fa; }
+    .btn-white { background: white; color: #555; }
+    .bg-danger-soft { background-color: rgba(239, 68, 68, 0.1); }
+    .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); }
+
+    /* Sync Badge Warna Status */
+    .bg-merah { background-color: #ef4444 !important; color: white !important; }
+    .bg-kuning { background-color: #f59e0b !important; color: white !important; }
+    .bg-biru { background-color: #3b82f6 !important; color: white !important; }
+    .bg-abu { background-color: #94a3b8 !important; color: white !important; }
+
+    .badge-urgency { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px; }
+    .status-pill { font-size: 0.7rem; font-weight: bold; min-width: 90px; letter-spacing: 0.5px; border: none; }
+
+    .btn-action { background: #fff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 6px 10px; transition: all 0.2s; }
+    .btn-action:hover { background: #f8fafc; transform: translateY(-2px); border-color: #cbd5e1; }
+
+    .blink-soft { animation: blinker 2.5s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.4; } }
+
+    @media print {
+        .btn, .pagination, form, .avatar-circle, .dropdown { display: none !important; }
+        .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+    }
+</style>
+
+<script>
+// Logic Dropdown Kategori agar terpilih
+document.querySelectorAll('.dropdown-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const selectedValue = this.innerText.trim();
+        if(selectedValue !== "Tambah Kategori Baru") {
+            document.querySelector('input[name="kategori"]').value = selectedValue;
+        }
+    });
+});
+
+function archiveReport(id, action) {
+    const msg = action === 'archive' ? 'Pindahkan laporan ke gudang arsip?' : 'Pulihkan laporan ke log utama?';
+    if(confirm(msg)) {
+        fetch(`/admin/report/${id}/archive/${action}`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => res.json())
+        .then(data => { if(data.status === 'success') window.location.reload(); })
+        .catch(err => alert('Gagal memproses permintaan.'));
+    }
+}
+
+function processReport(id, action) {
+    const msg = action === 'approve' ? 'Setujui laporan ini untuk diproses?' : 'Tandai laporan ini sebagai HOAKS?';
+    if(confirm(msg)) {
+        fetch(`/admin/report/${id}/${action}`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => { if(res.ok) window.location.reload(); })
+        .catch(err => alert('Gagal memperbarui status.'));
+    }
+}
+
+function deleteReport(id) {
+    if(confirm('⚠️ PERINGATAN: Laporan akan dihapus permanen! Lanjutkan?')) {
+        fetch(`/admin/report/${id}/delete`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(res => { if(res.ok) window.location.reload(); })
+        .catch(err => alert('Gagal menghapus laporan.'));
+    }
+}
+</script>
+{% endblock %}

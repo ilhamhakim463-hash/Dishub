@@ -1,0 +1,317 @@
+{% extends "base.html" %}
+{% block title %}Feed Publik | LAPORPAK!{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --jombang-blue: #007bff;
+        --jombang-gradient: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+        --soft-bg: #f8f9fa;
+        --success-stamp: #198754;
+    }
+
+    body {
+        background-color: var(--soft-bg);
+    }
+
+    .feed-header {
+        margin-bottom: 3rem;
+        padding-top: 2rem;
+    }
+
+    .title-line {
+        width: 60px;
+        height: 4px;
+        background: var(--jombang-gradient);
+        margin: 10px 0;
+        border-radius: 2px;
+    }
+
+    /* Card Styling */
+    .report-card {
+        border: none;
+        border-radius: 18px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        background: #ffffff;
+        position: relative;
+    }
+
+    .report-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 35px rgba(0, 123, 255, 0.1);
+    }
+
+    .img-container {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card-img-top {
+        height: 220px;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .report-card:hover .card-img-top {
+        transform: scale(1.05);
+    }
+
+    /* NOMOR 5: CAP SUKSES STAMP */
+    .stamp-container {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    .stamp-sukses {
+        border: 6px double var(--success-stamp);
+        color: var(--success-stamp);
+        font-family: 'Arial Black', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 900;
+        padding: 5px 20px;
+        border-radius: 15px;
+        text-transform: uppercase;
+        transform: rotate(-20deg);
+        opacity: 0.4;
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(1px);
+    }
+
+    /* Status Badges Overlay */
+    .badge-overlay {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 6;
+    }
+
+    .category-badge {
+        position: absolute;
+        bottom: 15px;
+        left: 15px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px);
+        color: white;
+        padding: 5px 12px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 6;
+    }
+
+    /* Content Styling */
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .report-date {
+        font-size: 0.8rem;
+        color: #adb5bd;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .report-title {
+        font-weight: 700;
+        color: #2d3436;
+        margin: 12px 0;
+        line-height: 1.4;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        height: 2.8em;
+    }
+
+    .admin-update-box {
+        background: #f0f7ff;
+        border-left: 4px solid var(--jombang-blue);
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    /* Action Buttons */
+    .interaction-bar {
+        border-top: 1px solid #f1f2f6;
+        padding-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .btn-interact {
+        border: none;
+        background: #f8f9fa;
+        color: #636e72;
+        padding: 6px 14px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+        transition: 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-interact:hover {
+        background: #e9ecef;
+        color: var(--jombang-blue);
+    }
+
+    .btn-interact.active {
+        background: #e7f1ff;
+        color: var(--jombang-blue);
+    }
+
+    .btn-detail {
+        background: var(--jombang-gradient);
+        border: none;
+        border-radius: 10px;
+        padding: 7px 18px;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+    }
+
+    /* Animations */
+    @keyframes fadeInCard {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-card {
+        animation: fadeInCard 0.5s ease forwards;
+    }
+</style>
+
+<div class="container feed-header">
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <h2 class="fw-bold text-dark mb-0">Feed Publik</h2>
+            <div class="title-line"></div>
+            <p class="text-muted">Laporan warga yang telah diverifikasi dan masuk dalam sistem penanganan Pemerintah Kabupaten Jombang.</p>
+        </div>
+    </div>
+</div>
+
+<div class="container mb-5">
+    <div class="row g-4">
+        {% for report in reports %}
+        <div class="col-lg-4 col-md-6 mb-4 animate-card" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+            <div class="card report-card h-100">
+
+                {% if report.status_label == 'SUKSES' %}
+                <div class="stamp-container">
+                    <div class="stamp-sukses">SUKSES</div>
+                </div>
+                {% endif %}
+
+                <div class="img-container">
+                    <div class="badge-overlay d-flex flex-column gap-2 align-items-end">
+                        <span class="badge rounded-pill bg-{{ 'danger' if report.status_warna == 'merah' else ('success' if report.status_warna == 'hijau' else ('primary' if report.status_warna == 'biru' else 'warning')) }} shadow-sm">
+                            {{ (report.status_warna or 'MENUNGGU').upper() }}
+                        </span>
+                    </div>
+
+                    {% if report.foto_awal %}
+                    <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_awal) }}" class="card-img-top" alt="{{ report.judul }}">
+                    {% else %}
+                    <div class="card-img-top d-flex align-items-center justify-content-center bg-light text-muted">
+                        <i class="bi bi-image" style="font-size: 3rem;"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="category-badge">
+                        <i class="bi bi-tag-fill me-1"></i> {{ report.kategori }}
+                    </div>
+                </div>
+
+                <div class="card-body d-flex flex-column">
+                    <div class="report-date">
+                        <i class="bi bi-calendar3"></i> {{ report.created_at.strftime('%d %b %Y') }}
+                    </div>
+
+                    <h5 class="report-title">{{ report.judul }}</h5>
+
+                    {% if report.komentar_admin %}
+                    <div class="admin-update-box">
+                        <small class="fw-bold text-primary d-block mb-1"><i class="bi bi-megaphone-fill"></i> UPDATE ADMIN:</small>
+                        <p class="small mb-0 text-dark italic">"{{ report.komentar_admin }}"</p>
+                    </div>
+                    {% endif %}
+
+                    <p class="report-desc flex-grow-1">{{ report.deskripsi[:85] }}{% if report.deskripsi|length > 85 %}...{% endif %}</p>
+
+                    <div class="interaction-bar">
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-interact" onclick="supportFeedReport({{ report.id }})" id="btn-support-{{ report.id }}">
+                                <i class="bi bi-hand-thumbs-up-fill"></i>
+                                <span id="feed-support-{{ report.id }}">{{ report.support_count or 0 }}</span>
+                            </button>
+
+                            <button class="btn btn-interact" onclick="shareReport({{ report.id }})" title="Bagikan Laporan">
+                                <i class="bi bi-share-fill"></i>
+                            </button>
+                        </div>
+
+                        <a href="{{ url_for('main.view_report', report_id=report.id) }}" class="btn btn-primary btn-detail btn-sm">
+                            Detail <i class="bi bi-arrow-right-short"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <img src="{{ url_for('static', filename='img/empty.svg') }}" style="width: 200px; opacity: 0.5;">
+            <p class="text-muted mt-3">Belum ada laporan yang diverifikasi untuk saat ini.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    // 1. Fungsi Dukungan (Like) Tanpa Refresh - Sinkron Database
+    function supportFeedReport(id) {
+        const btn = document.getElementById(`btn-support-${id}`);
+
+        fetch(`/report/${id}/support`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if(data.status === 'success') {
+                const countEl = document.getElementById(`feed-support-${id}`);
+                countEl.textContent = data.count;
+
+                // Efek visual sukses
+                btn.classList.add('active', 'animate__animated', 'animate__pulse');
+                btn.style.color = '#007bff';
+            } else {
+                alert(data.message); // Menampilkan "Anda sudah mendukung"
+            }
+        })
+        .catch(() => alert('Silakan login untuk mendukung laporan ini.'));
+    }
+
+    // 2. Fungsi Share (Salin Link Otomatis)
+    function shareReport(id) {
+        const url = `${window.location.origin}/report/${id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            alert('Link laporan berhasil disalin! Silakan bagikan ke WhatsApp atau media sosial.');
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        // Inisialisasi tooltips jika diperlukan
+    });
+</script>
+{% endblock %}

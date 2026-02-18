@@ -1,0 +1,113 @@
+{% extends "admin/admin_layout.html" %}
+{% block title %}Log Laporan Warga | Enterprise{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold mb-0">Log Laporan Seluruh Warga</h2>
+            <p class="text-muted">Manajemen data laporan masuk secara keseluruhan</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-secondary me-2" onclick="window.print()">
+                <i class="bi bi-printer"></i> Cetak Halaman
+            </button>
+            <a href="{{ url_for('admin.export_excel') }}" class="btn btn-success">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </a>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" placeholder="Cari Judul atau Pelapor...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select">
+                        <option selected>Semua Urgency</option>
+                        <option value="1">Darurat</option>
+                        <option value="0">Biasa</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select">
+                        <option selected>Semua Status</option>
+                        <option>Merah (Pending)</option>
+                        <option>Kuning (Proses)</option>
+                        <option>Hijau (Selesai)</option>
+                        <option>Biru (Arsip)</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4">ID</th>
+                            <th>Tanggal & Waktu</th>
+                            <th>Pelapor</th>
+                            <th>Judul & Kategori</th>
+                            <th>Urgency</th>
+                            <th>Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr>
+                            <td class="ps-4 text-muted">#{{ report.id }}</td>
+                            <td>
+                                <span class="d-block fw-bold">{{ report.created_at.strftime('%d %b %Y') }}</span>
+                                <small class="text-muted">{{ report.created_at.strftime('%H:%M') }} WIB</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ report.author.nama }}</div>
+                                <small class="text-muted">{{ report.author.email }}</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ report.judul }}</div>
+                                <span class="badge bg-light text-dark border">{{ report.kategori }}</span>
+                            </td>
+                            <td>
+                                {% if report.urgency_level == '1' %}
+                                <span class="badge bg-danger">DARURAT</span>
+                                {% else %}
+                                <span class="badge bg-success">BIASA</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ report.status_warna }} rounded-pill px-3">
+                                    {{ report.status_warna | upper }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('admin.view_report', report_id=report.id) }}" class="btn btn-sm btn-outline-primary">
+                                    Detail
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-folder2-open fs-1 d-block mb-3"></i>
+                                Belum ada laporan yang masuk.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

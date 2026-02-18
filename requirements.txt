@@ -1,0 +1,44 @@
+# Flask Core
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-Migrate==4.0.5
+Flask-WTF==1.2.1
+Flask-CORS==4.0.0
+Flask-SocketIO==5.3.5
+
+# Database
+mysql-connector-python==8.2.0
+PyMySQL==1.1.0
+
+# Security & Auth
+Werkzeug==3.0.1
+WTForms==3.1.1
+email-validator==2.1.0
+python-dotenv==1.0.0
+
+# WhatsApp & Communication
+twilio==8.11.0
+requests==2.31.0
+
+# File Processing & Export
+Pillow>=10.1.0
+openpyxl==3.1.2
+XlsxWriter==3.1.9
+reportlab==4.0.7
+PyPDF2==3.0.1
+
+# AI & NLP
+textblob==0.17.1
+nltk==3.8.1
+
+# Geolocation
+geopy==2.4.1
+exifread==3.0.0
+
+# Real-time & PWA
+python-socketio==5.10.0
+eventlet==0.33.3
+
+# Production Server
+gunicorn==21.2.0

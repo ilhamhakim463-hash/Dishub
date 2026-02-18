@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}Daftar Akun - LaporPak Jombang Enterprise{% endblock %}
+
+{% block content %}
+<div class="register-wrapper">
+    <div class="row g-0 min-vh-100">
+        <div class="col-lg-6 d-none d-lg-flex bg-primary text-white p-5 flex-column justify-content-center align-items-center position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10">
+                <i class="bi bi-hexagon-fill position-absolute" style="font-size: 25rem; top: -10%; left: -10%;"></i>
+                <i class="bi bi-geo-alt-fill position-absolute" style="font-size: 15rem; bottom: -5%; right: -5%;"></i>
+            </div>
+
+            <div class="position-relative z-index-1 text-center" style="max-width: 500px;">
+                <div class="mb-4 shadow-lg rounded-4 overflow-hidden bg-white p-2">
+                    <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1000&auto=format&fit=crop" class="img-fluid rounded-3" alt="Jombang Enterprise">
+                </div>
+
+                <h1 class="fw-bold mb-3 mt-4">Membangun Jombang yang Lebih Aman & Responsif</h1>
+                <p class="lead mb-5 opacity-75">Bergabunglah dengan sistem Enterprise LaporPak untuk menciptakan lingkungan transportasi dan keamanan Jombang yang lebih baik.</p>
+
+                <div class="text-start d-inline-block">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-white text-primary rounded-circle p-2 me-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <span class="fw-medium">Respon Cepat Petugas Lapangan</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-white text-primary rounded-circle p-2 me-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-bell-fill"></i>
+                        </div>
+                        <span class="fw-medium">Sistem Peringatan Dini (EWS)</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white text-primary rounded-circle p-2 me-3 shadow-sm d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <i class="bi bi-shield-check"></i>
+                        </div>
+                        <span class="fw-medium">Keamanan Data Tingkat Enterprise</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 d-flex align-items-center bg-white py-5">
+            <div class="container px-4 px-md-5">
+                <div class="text-center mb-5 d-lg-none">
+                    <h2 class="fw-bold text-primary">LaporPak!</h2>
+                </div>
+
+                <div class="text-center mb-4">
+                    <div class="bg-primary bg-opacity-10 d-inline-block p-3 rounded-circle mb-3">
+                        <i class="bi bi-person-plus-fill text-primary" style="font-size: 2rem"></i>
+                    </div>
+                    <h3 class="fw-bold">Registrasi Warga</h3>
+                    <p class="text-muted small">Lengkapi data diri sesuai KTP untuk akses penuh</p>
+                </div>
+
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label small fw-bold">NAMA LENGKAP *</label>
+                            <input type="text" class="form-control border-0 bg-light py-2 px-3" name="nama" placeholder="Sesuai KTP" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">NIK (16 DIGIT) *</label>
+                            <input type="text" class="form-control border-0 bg-light py-2 px-3" name="nik" maxlength="16" pattern="3517[0-9]{12}" placeholder="3517..." required>
+                            <div class="form-text x-small text-primary">Khusus wilayah Jombang (3517)</div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">NOMOR WHATSAPP *</label>
+                            <input type="tel" class="form-control border-0 bg-light py-2 px-3" name="no_wa" placeholder="08xxx" required>
+                            <div class="form-text x-small">Untuk notifikasi darurat (EWS)</div>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label small fw-bold">EMAIL (OPSIONAL)</label>
+                            <input type="email" class="form-control border-0 bg-light py-2 px-3" name="email" placeholder="nama@email.com">
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label small fw-bold">KECAMATAN *</label>
+                            <select class="form-select border-0 bg-light py-2 px-3" name="kecamatan" required>
+                                <option value="" disabled selected>Pilih Kecamatan</option>
+                                <option>Bandar Kedung Mulyo</option><option>Bareng</option><option>Diwek</option>
+                                <option>Gudo</option><option>Jombang</option><option>Jogoroto</option>
+                                <option>Kabuh</option><option>Kesamben</option><option>Kudu</option>
+                                <option>Megaluh</option><option>Mojoagung</option><option>Mojowarno</option>
+                                <option>Ngoro</option><option>Ngusikan</option><option>Perak</option>
+                                <option>Peterongan</option><option>Ploso</option><option>Plandaan</option>
+                                <option>Sumobito</option><option>Tembelang</option><option>Wonosalam</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label small fw-bold">ALAMAT DETAIL *</label>
+                            <textarea class="form-control border-0 bg-light py-2 px-3" name="alamat" rows="2" placeholder="Nama Jalan, Blok, atau RT/RW" required></textarea>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">PASSWORD *</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control border-0 bg-light py-2 px-3" name="password" id="regPass" minlength="8" required>
+                                <button class="btn btn-light border-0 px-3" type="button" onclick="toggleRegPass('regPass', 'eye1')">
+                                    <i class="bi bi-eye" id="eye1"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">KONFIRMASI *</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control border-0 bg-light py-2 px-3" name="confirm_password" id="confPass" required>
+                                <button class="btn btn-light border-0 px-3" type="button" onclick="toggleRegPass('confPass', 'eye2')">
+                                    <i class="bi bi-eye" id="eye2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-4 mt-2">
+                        <input class="form-check-input" type="checkbox" id="terms" required>
+                        <label class="form-check-label small text-muted" for="terms">
+                            Saya bersedia menerima informasi darurat dari LaporPak Jombang.
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-3 fw-bold shadow-sm">
+                        <i class="bi bi-rocket-takeoff me-2"></i> SELESAIKAN PENDAFTARAN
+                    </button>
+
+                    <div class="text-center mt-4">
+                        <span class="text-muted small">Sudah punya akun?</span>
+                        <a href="{{ url_for('auth.login') }}" class="text-primary small fw-bold text-decoration-none">Masuk Sekarang</a>
+                    </div>
+                </form>
+
+                <div class="text-center mt-5">
+                    <p class="text-muted x-small">© 2026 Diskominfo Kabupaten Jombang. Seluruh data dilindungi sistem keamanan Enterprise.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleRegPass(inputId, iconId) {
+        const field = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        if (field.type === "password") {
+            field.type = "text";
+            icon.classList.replace("bi-eye", "bi-eye-slash");
+        } else {
+            field.type = "password";
+            icon.classList.replace("bi-eye-slash", "bi-eye");
+        }
+    }
+</script>
+
+<style>
+    /* Reset & Layout */
+    .register-wrapper { min-height: 100vh; overflow-x: hidden; }
+    .x-small { font-size: 0.75rem; }
+    .bg-light { background-color: #f8f9fa !important; }
+
+    /* Input Styling */
+    .form-control, .form-select {
+        border-radius: 10px;
+        transition: all 0.3s ease;
+    }
+    /* Menyesuaikan border radius untuk input group (fitur mata) */
+    .input-group .form-control {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+    .input-group .btn {
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+        color: #6c757d;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background-color: #fff !important;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+        border: 1px solid #0d6efd !important;
+    }
+
+    /* Button Animation */
+    .btn-primary {
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+    }
+
+    /* Utility */
+    .z-index-1 { z-index: 1; }
+
+    /* Mobile adjustments */
+    @media (max-width: 991.98px) {
+        .bg-white { border-radius: 0; }
+    }
+</style>
+{% endblock %}

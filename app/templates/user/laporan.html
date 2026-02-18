@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block title %}Buat Laporan | Dishub Jombang{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+    :root {
+        --dishub-blue: #0d6efd;
+        --dishub-gradient: linear-gradient(135deg, #0d6efd 0%, #004dc0 100%);
+    }
+
+    body { background-color: #f4f7f6; }
+
+    /* Card & Container */
+    .card-laporan {
+        border-radius: 20px;
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    /* Priority Selector Custom */
+    .priority-selector input[type="radio"] { display: none; }
+    .priority-card {
+        border: 2px solid #e9ecef;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        text-align: center;
+    }
+    .priority-card:hover { transform: translateY(-3px); }
+
+    .btn-check:checked + .priority-card.green { border-color: #198754; background-color: #f1fcf7; }
+    .btn-check:checked + .priority-card.yellow { border-color: #ffc107; background-color: #fffdf1; }
+    .btn-check:checked + .priority-card.red { border-color: #dc3545; background-color: #fff5f5; }
+
+    /* GIS Map */
+    #map {
+        height: 400px;
+        width: 100%;
+        border-radius: 15px;
+        border: 2px solid #e9ecef;
+        z-index: 1;
+    }
+
+    .x-small { font-size: 0.75rem; }
+
+    .file-input-wrapper {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px dashed #dee2e6;
+        height: 100%;
+    }
+
+    .submit-btn {
+        background: var(--dishub-gradient);
+        border: none;
+        padding: 1rem;
+        font-weight: 700;
+        transition: all 0.3s;
+    }
+    .submit-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(13, 110, 253, 0.3);
+    }
+
+    @media (max-width: 768px) {
+        #map { height: 300px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="d-flex align-items-center mb-4">
+                <div class="bg-primary text-white p-3 rounded-3 me-3">
+                    <i class="bi bi-megaphone-fill fs-3"></i>
+                </div>
+                <div>
+                    <h2 class="fw-bold mb-0 text-dark">Buat Laporan Baru</h2>
+                    <p class="text-muted mb-0">Sistem Pelaporan Terpadu Enterprise Dishub Jombang</p>
+                </div>
+            </div>
+
+            <div class="card card-laporan">
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST" enctype="multipart/form-data" action="{{ url_for('user.create_report') }}">
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold mb-3"><i class="bi bi-shield-exclamation me-2"></i>Tingkat Urgensi (Enterprise Core)</label>
+                            <div class="row g-3 priority-selector">
+                                <div class="col-md-4">
+                                    <input type="radio" class="btn-check" name="status_warna" id="prioritasHijau" value="hijau" checked>
+                                    <label class="priority-card green w-100 p-3 rounded-4 shadow-sm" for="prioritasHijau">
+                                        <div class="fs-3">🟢</div>
+                                        <div class="fw-bold text-success">BIASA</div>
+                                        <div class="x-small text-muted">Marka Pudar / Hal Kecil</div>
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="radio" class="btn-check" name="status_warna" id="prioritasKuning" value="kuning">
+                                    <label class="priority-card yellow w-100 p-3 rounded-4 shadow-sm" for="prioritasKuning">
+                                        <div class="fs-3">🟡</div>
+                                        <div class="fw-bold text-warning">SEDANG</div>
+                                        <div class="x-small text-muted">Rambu Rusak / Terhalang</div>
+                                    </label>
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="radio" class="btn-check" name="status_warna" id="prioritasMerah" value="merah">
+                                    <label class="priority-card red w-100 p-3 rounded-4 shadow-sm" for="prioritasMerah">
+                                        <div class="fs-3">🔴</div>
+                                        <div class="fw-bold text-danger">DARURAT</div>
+                                        <div class="x-small text-muted">Lampu Mati / Bahaya Jalan</div>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Judul Laporan *</label>
+                                <input type="text" class="form-control form-control-lg rounded-3" name="judul" placeholder="Contoh: Lampu APILL Mati di Simpang..." required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold"> Kategori Utama Dishub</label>
+                                <select name="kategori" class="form-select form-select-lg rounded-3" required>
+                                    <option value="" selected disabled>-- Pilih Kategori --</option>
+                                    <option value="Lampu Lalu Lintas Mati / Rusak"> Lampu Lalu Lintas Mati / Rusak</option>
+                                    <option value="Rambu Lalu Lintas Rusak / Hilang"> Rambu Lalu Lintas Rusak / Hilang</option>
+                                    <option value="Marka Jalan Pudar / Hilang"> Marka Jalan Pudar / Hilang</option>
+                                    <option value="Kemacetan Parah"> Kemacetan Parah</option>
+                                    <option value="Parkir Liar"> Parkir Liar</option>
+                                    <option value="Angkutan Umum Bermasalah"> Angkutan Umum Bermasalah</option>
+                                    <option value="APILL Error"> APILL Error</option>
+                                    <option value="Jalan Berbahaya / Rawan Kecelakaan"> Jalan Berbahaya / Rawan Kecelakaan</option>
+                                    <option value="Fasilitas Pejalan Kaki Rusak"> Fasilitas Pejalan Kaki Rusak</option>
+                                    <option value="Kejadian Darurat Lalu Lintas"> Kejadian Darurat Lalu Lintas</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Deskripsi Kejadian *</label>
+                            <textarea class="form-control rounded-3" name="deskripsi" rows="4" placeholder="Detail kronologi atau kondisi di lapangan..." required></textarea>
+                        </div>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="file-input-wrapper">
+            <label class="form-label fw-bold small text-primary text-uppercase">
+                <i class="bi bi-camera-fill me-1"></i> Foto Utama (Wajib)
+            </label>
+            <input type="file" class="form-control form-control-sm border-primary shadow-sm"
+                   name="foto_awal" accept="image/*" required>
+            <div class="form-text x-small text-muted">Tampak paling jelas dari kejadian.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="file-input-wrapper">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="bi bi-camera me-1"></i> Sisi Kiri / Lainnya
+            </label>
+            <input type="file" class="form-control form-control-sm"
+                   name="foto_2" accept="image/*">
+            <div class="form-text x-small text-muted">Opsional: Foto sudut pandang lain.</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="file-input-wrapper">
+            <label class="form-label fw-bold small text-uppercase text-muted">
+                <i class="bi bi-camera me-1"></i> Sisi Kanan / Lainnya
+            </label>
+            <input type="file" class="form-control form-control-sm"
+                   name="foto_3" accept="image/*">
+            <div class="form-text x-small text-muted">Opsional: Foto sudut pandang lain.</div>
+        </div>
+    </div>
+</div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Lokasi Kejadian (GIS Integration)</label>
+                            <div class="input-group mb-2 shadow-sm">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-geo-alt text-primary"></i></span>
+                                <input type="text" class="form-control border-start-0 ps-0" name="alamat_manual" id="alamat" placeholder="Mencari alamat..." readonly>
+                                <button type="button" class="btn btn-primary px-3" id="getLocation">
+                                    <i class="bi bi-cursor-fill me-1"></i> Ambil Lokasi
+                                </button>
+                            </div>
+
+                            <input type="hidden" name="latitude" id="latitude">
+                            <input type="hidden" name="longitude" id="longitude">
+
+                            <div id="map" class="shadow-sm"></div>
+                            <p class="form-text text-muted mt-2 small">
+                                <i class="bi bi-info-circle-fill me-1"></i> Geser pin pada peta untuk menyesuaikan titik lokasi secara akurat.
+                            </p>
+                        </div>
+
+                        <hr class="my-4 opacity-25">
+
+                        <button type="submit" class="btn btn-primary submit-btn w-100 rounded-pill fs-5">
+                            <i class="bi bi-send-check-fill me-2"></i> KIRIM LAPORAN KE COMMAND CENTER
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map, marker;
+
+function initMap() {
+    const defaultLat = -7.5465;
+    const defaultLng = 112.2332;
+
+    map = L.map('map', {
+        scrollWheelZoom: false
+    }).setView([defaultLat, defaultLng], 14);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const customIcon = L.icon({
+        iconUrl: 'https://cdn-icons-png.flaticon.com/512/2776/2776067.png',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40]
+    });
+
+    marker = L.marker([defaultLat, defaultLng], {
+        draggable: true,
+        icon: customIcon
+    }).addTo(map);
+
+    updateLocationInputs(defaultLat, defaultLng);
+
+    marker.on('dragend', function(e) {
+        const pos = marker.getLatLng();
+        updateLocationInputs(pos.lat, pos.lng);
+    });
+
+    map.on('click', function(e) {
+        marker.setLatLng(e.latlng);
+        updateLocationInputs(e.latlng.lat, e.latlng.lng);
+    });
+}
+
+document.getElementById('getLocation').addEventListener('click', function() {
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            marker.setLatLng([lat, lng]);
+            map.setView([lat, lng], 17);
+            updateLocationInputs(lat, lng);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cursor-fill me-1"></i> Ambil Lokasi';
+        }, function(error) {
+            alert("Izin lokasi ditolak. Silakan aktifkan GPS Anda.");
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-cursor-fill me-1"></i> Ambil Lokasi';
+        });
+    }
+});
+
+function updateLocationInputs(lat, lng) {
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+
+    fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`)
+        .then(r => r.json())
+        .then(data => {
+            if(data.display_name) {
+                document.getElementById('alamat').value = data.display_name;
+            } else {
+                document.getElementById('alamat').value = `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            }
+        }).catch(() => {
+            document.getElementById('alamat').value = `Koordinat: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        });
+}
+
+document.addEventListener('DOMContentLoaded', initMap);
+</script>
+{% endblock %}

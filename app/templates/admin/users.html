@@ -1,0 +1,384 @@
+{% extends "admin/admin_layout.html" %}
+{% block title %}Database Pengguna | Enterprise Command Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4 text-dark animate__animated animate__fadeIn">
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
+        <div>
+            <h2 class="fw-bold mb-1 text-gradient-primary">Manajemen Database Warga</h2>
+            <p class="text-muted mb-0">Pantau hak akses, data identitas, dan status aktivitas warga.</p>
+        </div>
+
+        <div class="d-flex flex-wrap gap-3">
+            <div class="card border-0 shadow-sm px-4 py-3 bg-white stat-card">
+                <div class="d-flex align-items-center">
+                    <div class="icon-shape bg-soft-primary rounded-3 me-3">
+                        <i class="bi bi-people-fill fs-4 text-primary"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Total Warga</small>
+                        <span class="h4 fw-bold mb-0 text-dark">{{ users|length }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm px-4 py-3 bg-white stat-card-online">
+                <div class="d-flex align-items-center">
+                    <div class="icon-shape bg-soft-success rounded-3 me-3">
+                        <i class="bi bi-broadcast fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Online</small>
+                        <span class="h4 fw-bold mb-0 text-success">
+                            {{ users|selectattr('is_online', 'equalto', true)|list|length }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm px-4 py-3 bg-white stat-card-offline">
+                <div class="d-flex align-items-center">
+                    <div class="icon-shape bg-soft-secondary rounded-3 me-3">
+                        <i class="bi bi-moon-stars-fill fs-4 text-secondary"></i>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Offline</small>
+                        <span class="h4 fw-bold mb-0 text-secondary">
+                            {{ users|selectattr('is_online', 'equalto', false)|list|length }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mb-4 search-card">
+        <div class="card-body p-3">
+            <form action="{{ url_for('admin.users') }}" method="GET" class="row g-2">
+                <div class="col-12 col-md-10">
+                    <div class="input-group input-group-merge">
+                        <span class="input-group-text border-0 bg-light px-3"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control border-0 bg-light py-2"
+                               placeholder="Cari berdasarkan Nama, NIK, atau Kecamatan..."
+                               value="{{ request.args.get('search', '') }}">
+                    </div>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                        Cari Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm overflow-hidden main-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light-blue text-muted small text-uppercase">
+                    <tr>
+                        <th class="ps-4 py-3 border-0">Profil Warga</th>
+                        <th class="border-0">NIK & UID</th>
+                        <th class="border-0 text-center">Kecamatan</th>
+                        <th class="border-0 text-center">Aktivitas Terakhir</th>
+                        <th class="border-0 text-center">Poin</th>
+                        <th class="border-0 text-center">Status Akun</th>
+                        <th class="border-0 text-center sticky-col">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center" style="min-width: 220px;">
+                                <div class="avatar-circle-main bg-primary text-white me-3 d-flex align-items-center justify-content-center fw-bold shadow-sm">
+                                    {{ (user.nama[0] if user.nama else '?') | upper }}
+                                </div>
+                                <div class="text-truncate">
+                                    <div class="fw-bold text-dark text-truncate mb-0">{{ user.nama or 'Tanpa Nama' }}</div>
+                                    <small class="text-muted"><i class="bi bi-whatsapp me-1 text-success"></i>{{ user.no_wa or user.no_hp or '-' }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="min-width: 150px;">
+                                <div class="small fw-bold text-dark mb-1">{{ user.nik or '---' }}</div>
+                                <span class="badge bg-light text-primary border border-primary-soft">ID #{{ user.id }}</span>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-soft-info text-info border-0 px-3 py-2 fw-medium">
+                                {{ user.kecamatan or 'N/A' }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="activity-trigger" onclick="viewActivityLog({{ user.id }}, '{{ user.nama }}')" title="Klik untuk detail riwayat jam On/Off">
+                                <div class="small fw-bold {{ 'text-success' if user.is_online else 'text-muted' }}">
+                                    <i class="bi bi-circle-fill me-1" style="font-size: 0.5rem;"></i>
+                                    {{ 'Sedang Aktif' if user.is_online else 'Offline' }}
+                                </div>
+                                <small class="text-xs text-muted" style="font-size: 0.7rem;">
+                                    <i class="bi bi-clock me-1"></i>{{ user.last_seen.strftime('%d/%m %H:%M') if user.last_seen else 'Belum login' }}
+                                </small>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <div class="fw-bold text-success d-flex align-items-center justify-content-center">
+                                <i class="bi bi-star-fill small me-1"></i>{{ user.poin_warga or 0 }}
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            {% if user.is_active %}
+                            <span class="badge-status bg-success-soft text-success"><i class="bi bi-check-circle-fill me-1"></i>AKTIF</span>
+                            {% else %}
+                            <span class="badge-status bg-danger-soft text-danger"><i class="bi bi-x-circle-fill me-1"></i>NONAKTIF</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center sticky-col action-cell">
+                            <div class="d-flex justify-content-center gap-2">
+                                <button class="btn-action btn-toggle shadow-sm" onclick="toggleUser({{ user.id }})" title="Ubah Status">
+                                    <i class="bi bi-power {{ 'text-success' if user.is_active else 'text-danger' }}"></i>
+                                </button>
+                                <button class="btn-action btn-reset shadow-sm" onclick="openResetModal({{ user.id }}, '{{ user.nama }}')" title="Reset Password">
+                                    <i class="bi bi-key-fill text-primary"></i>
+                                </button>
+                                <form action="{{ url_for('admin.delete_user', user_id=user.id) }}" method="POST"
+                                      onsubmit="return confirm('PERINGATAN: Hapus permanen akun {{ user.nama }}?')" class="d-inline">
+                                    <button type="submit" class="btn-action btn-delete shadow-sm">
+                                        <i class="bi bi-trash3-fill text-danger"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="activityLogModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex justify-content-between">
+                <h5 class="modal-title fw-bold text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Log Waktu On/Off</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-4">
+                    <div class="avatar-circle-main bg-primary text-white me-3 d-flex align-items-center justify-content-center fw-bold" id="logAvatar">?</div>
+                    <div>
+                        <h6 class="fw-bold mb-0 text-dark" id="logUserName">---</h6>
+                        <small class="text-muted">Riwayat aktivitas 48 jam terakhir</small>
+                    </div>
+                </div>
+                <div id="logContent" style="max-height: 350px; overflow-y: auto;" class="custom-scrollbar">
+                    <div class="text-center py-4 text-muted">Sedang memuat data...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 24px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <div class="bg-soft-primary p-2 rounded-circle me-3">
+                        <i class="bi bi-shield-lock text-primary fs-4"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-0">Reset Password</h5>
+                </div>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-4 text-center p-3 bg-light rounded-4">
+                    <small class="text-muted d-block mb-1">Akun Warga:</small>
+                    <span class="fw-bold text-dark fs-5" id="resetTargetName">---</span>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold text-muted">PASSWORD BARU</label>
+                    <div class="input-group input-group-merge">
+                        <span class="input-group-text border-0 bg-light"><i class="bi bi-lock"></i></span>
+                        <input type="password" id="newPasswordInput" class="form-control border-0 bg-light py-2" placeholder="Minimal 5 karakter">
+                        <button class="btn btn-light border-0" type="button" onclick="toggleVisibility()">
+                            <i class="bi bi-eye" id="eyeIcon"></i>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" id="resetUserId">
+                <div class="d-grid mt-4">
+                    <button type="button" id="btnSubmitReset" onclick="submitResetPassword()" class="btn btn-primary btn-lg fw-bold shadow-sm" style="border-radius: 12px; font-size: 0.95rem;">
+                        Simpan Perubahan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling Dasar */
+    :root {
+        --primary-soft: rgba(13, 110, 253, 0.1);
+        --success-soft: rgba(40, 167, 69, 0.1);
+        --secondary-soft: rgba(108, 117, 125, 0.1);
+        --danger-soft: rgba(220, 53, 69, 0.1);
+        --info-soft: rgba(13, 202, 240, 0.1);
+    }
+
+    .bg-soft-primary { background: var(--primary-soft); }
+    .bg-soft-success { background: var(--success-soft); }
+    .bg-soft-secondary { background: var(--secondary-soft); }
+    .bg-light-blue { background-color: #f8fbff; }
+
+    .text-gradient-primary {
+        background: linear-gradient(90deg, #0d6efd, #0dcaf0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    /* Stat Cards */
+    .stat-card { border-radius: 15px; border-left: 4px solid #0d6efd !important; min-width: 160px; }
+    .stat-card-online { border-radius: 15px; border-left: 4px solid #28a745 !important; min-width: 140px; }
+    .stat-card-offline { border-radius: 15px; border-left: 4px solid #6c757d !important; min-width: 140px; }
+
+    .main-table-card { border-radius: 20px; }
+    .avatar-circle-main { width: 42px; height: 42px; border-radius: 12px; font-size: 1.1rem; }
+
+    .activity-trigger {
+        cursor: pointer;
+        padding: 5px;
+        border-radius: 8px;
+        transition: 0.2s;
+    }
+    .activity-trigger:hover { background: rgba(0,0,0,0.03); }
+
+    .badge-status {
+        padding: 6px 14px; border-radius: 10px; font-size: 0.75rem; font-weight: 700;
+        display: inline-flex; align-items: center;
+    }
+
+    /* Log Item Styling */
+    .log-item {
+        border-left: 3px solid #dee2e6;
+        padding-left: 20px;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .log-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 0;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid #dee2e6;
+    }
+    .log-item.online { border-left-color: #28a745; }
+    .log-item.online::before { border-color: #28a745; }
+    .log-item.offline { border-left-color: #6c757d; }
+    .log-item.offline::before { border-color: #6c757d; }
+
+    .btn-action {
+        width: 38px; height: 38px; border-radius: 10px; border: none;
+        background: white; transition: 0.2s all;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .btn-action:hover { transform: translateY(-2px); filter: brightness(0.95); }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
+
+    @media (max-width: 991px) {
+        .sticky-col {
+            position: sticky; right: 0; background-color: white !important;
+            box-shadow: -10px 0 15px rgba(0,0,0,0.05); z-index: 5;
+        }
+    }
+</style>
+
+<script>
+let resetModal, activityModal;
+document.addEventListener('DOMContentLoaded', () => {
+    resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    activityModal = new bootstrap.Modal(document.getElementById('activityLogModal'));
+});
+
+function viewActivityLog(userId, userName) {
+    document.getElementById('logUserName').innerText = userName;
+    document.getElementById('logAvatar').innerText = userName.charAt(0).toUpperCase();
+    document.getElementById('logContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
+
+    activityModal.show();
+
+    fetch(`/admin/user/${userId}/logs`)
+        .then(res => res.json())
+        .then(data => {
+            let html = '';
+            if (data.logs && data.logs.length > 0) {
+                data.logs.forEach(log => {
+                    const typeClass = log.type === 'LOGIN' ? 'online' : 'offline';
+                    const badgeClass = log.type === 'LOGIN' ? 'bg-success' : 'bg-secondary';
+                    html += `
+                        <div class="log-item ${typeClass}">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <span class="badge ${badgeClass} mb-1" style="font-size: 0.6rem;">${log.type}</span>
+                                    <div class="fw-bold text-dark small">${log.message}</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-dark fw-bold small" style="font-size: 0.75rem;">${log.timestamp.split(' ')[1]}</div>
+                                    <div class="text-muted" style="font-size: 0.65rem;">${log.timestamp.split(' ')[0]}</div>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+            } else {
+                html = '<div class="text-center py-4 text-muted">Belum ada riwayat masuk/keluar.</div>';
+            }
+            document.getElementById('logContent').innerHTML = html;
+        });
+}
+
+// Fungsi lainnya (toggleUser, submitResetPassword, dll) tetap sama seperti sebelumnya
+function openResetModal(id, nama) {
+    document.getElementById('resetUserId').value = id;
+    document.getElementById('resetTargetName').innerText = nama;
+    document.getElementById('newPasswordInput').value = '';
+    resetModal.show();
+}
+
+async function submitResetPassword() {
+    const id = document.getElementById('resetUserId').value;
+    const password = document.getElementById('newPasswordInput').value;
+    if(!password || password.length < 5) return alert('Password minimal 5 karakter');
+
+    try {
+        const response = await fetch(`/admin/user/${id}/reset-password`, {
+            method: 'POST',
+            body: new URLSearchParams({'new_password': password})
+        });
+        if(response.ok) { resetModal.hide(); location.reload(); }
+    } catch (e) { alert('Gagal memproses data'); }
+}
+
+async function toggleUser(id) {
+    if(!confirm('Ubah status aktif user?')) return;
+    const res = await fetch(`/admin/user/${id}/toggle`, { method: 'POST' });
+    if(res.ok) location.reload();
+}
+
+function toggleVisibility() {
+    const input = document.getElementById('newPasswordInput');
+    const icon = document.getElementById('eyeIcon');
+    input.type = input.type === "password" ? "text" : "password";
+    icon.classList.toggle("bi-eye");
+    icon.classList.toggle("bi-eye-slash");
+}
+</script>
+{% endblock %}

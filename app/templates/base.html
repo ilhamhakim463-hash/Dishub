@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}LaporPak Jombang Enterprise{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        :root {
+            --primary-blue: #0d6efd;
+            --dark-navy: #0a4da2;
+            --gray-soft: #6c757d;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            min-height: 100vh;
+            /* Padding bawah menyesuaikan navigasi mobile */
+            padding-bottom: {% if current_user.is_authenticated and current_user.role == 'admin' %}0px{% else %}80px{% endif %};
+        }
+
+        /* --- Navigasi Bawah (Mobile Optimized) --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.05);
+            z-index: 1030;
+            border-top: 1px solid #eee;
+        }
+
+        .nav-item-custom {
+            text-align: center;
+            color: var(--gray-soft);
+            text-decoration: none;
+            font-size: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+        }
+
+        .nav-item-custom i {
+            display: block;
+            font-size: 1.4rem;
+            margin-bottom: 1px;
+        }
+
+        .nav-item-custom.active {
+            color: var(--primary-blue) !important;
+        }
+
+        /* --- LaporBot UI --- */
+        #bot-launcher {
+            position: fixed;
+            bottom: 95px;
+            right: 20px;
+            z-index: 1040;
+        }
+
+        #chat-window {
+            position: fixed;
+            bottom: 155px;
+            right: 20px;
+            width: 320px;
+            height: 450px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            display: none;
+            flex-direction: column;
+            z-index: 1050;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        #chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #fdfdfd;
+        }
+
+        .msg-bubble {
+            padding: 10px 14px;
+            border-radius: 18px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            max-width: 85%;
+        }
+
+        .msg-bot {
+            background: #f0f2f5;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-user {
+            background: var(--primary-blue);
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 4px;
+        }
+
+        /* --- Custom Marker Styles (Enterprise Map) --- */
+        .marker-pin {
+            width: 30px;
+            height: 30px;
+            border-radius: 50% 50% 50% 0;
+            position: absolute;
+            transform: rotate(-45deg);
+            left: 50%;
+            top: 50%;
+            margin: -15px 0 0 -15px;
+            border: 2px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .pin-icon {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            transform: rotate(45deg);
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0.3; }
+        }
+
+        .blink-pin {
+            animation: blinker 1s linear infinite;
+        }
+
+        /* Utilitas Jam & Cuaca */
+        #clock-now {
+            font-variant-numeric: tabular-nums;
+        }
+
+        @media (max-width: 991.98px) {
+            .navbar-enterprise { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+
+    {% include 'components/navbar.html' %}
+
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 rounded-3">
+                        <i class="bi bi-info-circle-fill me-2"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <main class="animate__animated animate__fadeIn">
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if not (current_user.is_authenticated and current_user.role == 'admin') %}
+    <nav class="bottom-nav d-lg-none">
+        <a href="{{ url_for('main.index') }}" class="nav-item-custom {{ 'active' if request.endpoint == 'main.index' else '' }}">
+            <i class="bi bi-house-door{{ '-fill' if request.endpoint == 'main.index' else '' }}"></i>
+            <span>Beranda</span>
+        </a>
+        <a href="{{ url_for('user.create_report') }}" class="nav-item-custom {{ 'active' if request.endpoint == 'user.create_report' else '' }}">
+            <i class="bi bi-megaphone{{ '-fill' if request.endpoint == 'user.create_report' else '' }}"></i>
+            <span>Lapor</span>
+        </a>
+        <a href="{{ url_for('main.feed') }}" class="nav-item-custom {{ 'active' if request.endpoint in ['main.feed', 'main.view_report'] else '' }}">
+            <i class="bi bi-rss{{ '-fill' if request.endpoint in ['main.feed', 'main.view_report'] else '' }}"></i>
+            <span>Feed</span>
+        </a>
+        <a href="{{ url_for('user.profile') }}" class="nav-item-custom {{ 'active' if request.endpoint == 'user.profile' else '' }}">
+            <i class="bi bi-person{{ '-fill' if request.endpoint == 'user.profile' else '' }}"></i>
+            <span>Profil</span>
+        </a>
+    </nav>
+
+    <div id="bot-launcher">
+        <button class="btn btn-primary rounded-circle shadow-lg p-3 border-4 border-white" onclick="toggleChat()">
+            <i class="bi bi-chat-dots-fill fs-4"></i>
+        </button>
+    </div>
+
+    <div id="chat-window" class="animate__animated animate__slideInUp">
+        <div class="bg-primary text-white p-3 d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <div class="bg-white rounded-circle p-1 me-2 text-primary">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <h6 class="mb-0 fw-bold">LaporBot Siaga</h6>
+            </div>
+            <button class="btn-close btn-close-white" onclick="toggleChat()"></button>
+        </div>
+        <div id="chat-messages" class="d-flex flex-column">
+            <div class="msg-bubble msg-bot shadow-sm">Halo! Saya LaporBot Jombang. Ada yang bisa saya bantu terkait kendala fasilitas publik hari ini?</div>
+        </div>
+        <div class="p-3 border-top bg-white">
+            <div class="input-group">
+                <input type="text" id="bot-input" class="form-control border-light bg-light rounded-pill px-3" placeholder="Ketik pesan..." onkeypress="handleEnter(event)">
+                <button class="btn btn-primary rounded-circle ms-2" onclick="sendToBot()">
+                    <i class="bi bi-send-fill"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Inisialisasi Socket.io
+        const socket = io();
+
+        // Fungsi Jam & Tanggal Otomatis
+        function updateDateTime() {
+            const now = new Date();
+            const optionsDate = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateEl = document.getElementById('date-now');
+            const clockEl = document.getElementById('clock-now');
+
+            if(dateEl) {
+                dateEl.innerText = now.toLocaleDateString('id-ID', optionsDate);
+            }
+            if(clockEl) {
+                const timeString = now.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                }) + " WIB";
+                clockEl.innerText = timeString;
+            }
+        }
+
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // Fungsi ChatBot Logic
+        function toggleChat() {
+            const win = document.getElementById('chat-window');
+            if(win) {
+                if(win.style.display === 'flex') {
+                    win.style.display = 'none';
+                } else {
+                    win.style.display = 'flex';
+                }
+            }
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') {
+                sendToBot();
+            }
+        }
+
+        function sendToBot() {
+            const input = document.getElementById('bot-input');
+            const msg = input.value.trim();
+            if(msg) {
+                appendMessage('user', msg);
+                socket.emit('user_message', { message: msg });
+                input.value = '';
+            }
+        }
+
+        socket.on('bot_response', function(data) {
+            appendMessage('bot', data.message);
+        });
+
+        function appendMessage(type, msg) {
+            const container = document.getElementById('chat-messages');
+            if(!container) return;
+
+            const div = document.createElement('div');
+            div.className = `msg-bubble msg-${type} shadow-sm`;
+            div.innerText = msg;
+
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

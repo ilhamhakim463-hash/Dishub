@@ -1,0 +1,206 @@
+{% extends "admin/admin_layout.html" %}
+{% block title %}Admin - Detail Laporan #{{ report.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('admin.reports') }}">Log Laporan</a></li>
+            <li class="breadcrumb-item active">Detail #{{ report.id }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fw-bold text-dark">Informasi Laporan</h5>
+                        <span class="badge bg-{{ report.status_warna or 'secondary' }} rounded-pill px-3">
+                            {{ (report.status_warna or 'PENDING').upper() }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if report.foto_awal %}
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_awal) }}"
+                             class="rounded shadow-sm img-fluid w-100" style="max-height: 450px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+
+                    <h3 class="fw-bold">{{ report.judul }}</h3>
+                    <p class="text-muted lead">{{ report.deskripsi }}</p>
+
+                    <div class="table-responsive mt-4">
+                        <table class="table table-borderless align-middle">
+                            <tr class="border-bottom">
+                                <th class="py-3 text-muted fw-normal" style="width: 30%;">Pelapor</th>
+                                <td class="fw-bold">{{ report.author.nama if report.author else 'Anonim' }}</td>
+                            </tr>
+                            <tr class="border-bottom">
+                                <th class="py-3 text-muted fw-normal">NIK / WhatsApp</th>
+                                <td>{{ report.author.nik if report.author else '-' }} / <span class="text-success fw-bold">{{ report.author.no_wa if report.author else '-' }}</span></td>
+                            </tr>
+                            <tr class="border-bottom">
+                                <th class="py-3 text-muted fw-normal">Kategori</th>
+                                <td><span class="badge bg-soft-primary text-primary">{{ report.kategori }}</span></td>
+                            </tr>
+                            <tr class="border-bottom">
+                                <th class="py-3 text-muted fw-normal">Urgency</th>
+                                <td>
+                                    {% if report.urgency_level == '1' or report.status_warna == 'merah' %}
+                                    <span class="badge bg-danger blink-soft">🚨 DARURAT</span>
+                                    {% else %}
+                                    <span class="badge bg-success">✓ BIASA</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr class="border-bottom">
+                                <th class="py-3 text-muted fw-normal">Lokasi Alamat</th>
+                                <td class="small">{{ report.alamat_manual }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if report.latitude and report.longitude %}
+            <div class="card border-0 shadow-sm overflow-hidden">
+                <div class="card-header bg-white fw-bold py-3"><i class="bi bi-geo-alt me-2"></i>Lokasi di Peta</div>
+                <div class="card-body p-0">
+                    <div id="mapDetail" style="height: 400px;"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+
+            {# MODERASI AWAL #}
+            {% if not report.is_approved %}
+            <div class="card border-0 shadow-sm mb-4 border-start border-warning border-4">
+                <div class="card-header bg-white fw-bold text-dark py-3">Moderasi Laporan</div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">Tentukan validitas laporan ini untuk memulai proses penanganan.</p>
+                    <div class="d-grid gap-2">
+                        <button onclick="executeAction({{ report.id }}, 'approve')" class="btn btn-success shadow-sm">
+                            <i class="bi bi-check-lg me-2"></i>Terima & Proses
+                        </button>
+                        <button onclick="executeAction({{ report.id }}, 'reject-hoax')" class="btn btn-outline-danger">
+                            <i class="bi bi-x-circle me-2"></i>Tolak (Hoaks)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {# UPDATE PROGRESS & FEEDBACK (SESUAI GAMBAR DROPDOWN) #}
+            {% if report.is_approved and report.status_warna != 'biru' %}
+            <div class="card border-0 shadow-sm mb-4 border-start border-primary border-4">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi- megaphone me-2"></i>Update Progres & Feedback</h6>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('admin.update_status', report_id=report.id) }}" method="POST" enctype="multipart/form-data">
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Status Laporan</label>
+                            <select name="status_warna" class="form-select border-2 shadow-sm py-2">
+                                <option value="merah" {% if report.status_warna == 'merah' %}selected{% endif %}>🔴 Darurat (Merah)</option>
+                                <option value="kuning" {% if report.status_warna == 'kuning' %}selected{% endif %}>🟡 Proses (Kuning)</option>
+                                <option value="biru" {% if report.status_warna == 'biru' %}selected{% endif %}>🔵 Selesai (Biru)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Catatan Untuk Warga</label>
+                            <textarea name="catatan_admin" class="form-control border-2 shadow-sm" rows="3" placeholder="Contoh: Petugas sedang menuju lokasi..."></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-muted text-uppercase">Foto Bukti (Opsional)</label>
+                            <input type="file" name="bukti_foto" class="form-control border-2 shadow-sm">
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary fw-bold py-2 shadow">
+                                <i class="bi bi-send-fill me-2"></i>Kirim Update Progres
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card border-0 shadow-sm bg-dark text-white mb-4 overflow-hidden">
+                <div class="card-header border-0 d-flex justify-content-between align-items-center bg-dark py-3">
+                    <h6 class="mb-0 small fw-bold"><i class="bi bi-camera-video me-2"></i>CCTV LIVE MONITOR</h6>
+                    <span class="badge bg-danger animate-pulse" id="live-indicator" style="display:none; font-size: 0.6rem;">LIVE</span>
+                </div>
+                <div id="cctv-container" class="bg-black d-flex align-items-center justify-content-center" style="height: 220px;">
+                    <div class="text-center p-3" id="placeholder-ui">
+                        <i class="bi bi-geo-alt-fill text-primary fs-1"></i>
+                        <p class="x-small text-muted mt-2">Hubungkan ke kamera terdekat di koordinat ini.</p>
+                        <button class="btn btn-outline-primary btn-sm mt-2 rounded-pill px-3" onclick="loadCCTV()">
+                            Hubungkan Kamera
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1); }
+    .blink-soft { animation: blinker 2s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.6; } }
+    .animate-pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    #cctv-container iframe { width: 100%; height: 100%; border: none; }
+    .form-select, .form-control { border-radius: 8px; font-size: 0.9rem; }
+    .card { border-radius: 12px; }
+</style>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+// 1. Inisialisasi Peta
+{% if report.latitude and report.longitude %}
+const map = L.map('mapDetail').setView([{{ report.latitude }}, {{ report.longitude }}], 17);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.marker([{{ report.latitude }}, {{ report.longitude }}]).addTo(map)
+    .bindPopup('Lokasi Kejadian').openPopup();
+{% endif %}
+
+// 2. Fungsi Moderasi (AJAX)
+function executeAction(id, action) {
+    const msg = action === 'approve' ? 'Terima laporan ini untuk diproses?' : 'Tandai sebagai hoaks?';
+    if(confirm(msg)) {
+        fetch(`/admin/report/${id}/${action}`, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'}
+        }).then(res => {
+            if(res.ok) location.reload();
+            else alert('Gagal memproses aksi.');
+        });
+    }
+}
+
+// 3. Fungsi CCTV Visual
+function loadCCTV() {
+    const container = document.getElementById('cctv-container');
+    const indicator = document.getElementById('live-indicator');
+    container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+    setTimeout(() => {
+        const lat = "{{ report.latitude }}";
+        const lng = "{{ report.longitude }}";
+        container.innerHTML = `<iframe src="https://maps.google.com/maps?q=${lat},${lng}&t=k&z=19&ie=UTF8&iwloc=&output=embed"></iframe>`;
+        indicator.style.display = 'block';
+    }, 1200);
+}
+</script>
+{% endblock %}

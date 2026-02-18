@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}Beranda - LaporPak Jombang Enterprise{% endblock %}
+
+{% block content %}
+<section class="hero-header position-relative overflow-hidden text-white"
+         style="background: linear-gradient(rgba(13, 110, 253, 0.85), rgba(10, 88, 202, 0.95)), url('/static/img/bg-jombang.jpg') center/cover; padding: 100px 0;">
+    <div class="container position-relative z-2">
+        <div class="row justify-content-center text-center">
+            <div class="col-lg-9 animate__animated animate__fadeIn">
+                <div class="d-flex justify-content-center align-items-center mb-4">
+                    <img src="{{ url_for('static', filename='img2.png') }}" alt="Logo Kabupaten Jombang" height="65" class="animate__animated animate__fadeInLeft">
+                    <div class="vr bg-white mx-4 opacity-50" style="height: 50px; width: 2px;"></div>
+                    <img src="{{ url_for('static', filename='img1.png') }}" alt="Logo Terkait" height="60" class="animate__animated animate__fadeInRight">
+                </div>
+
+                <h1 class="display-3 fw-bolder mb-3 text-uppercase" style="letter-spacing: -1px;">Suara Anda, Perubahan Kami</h1>
+                <p class="lead mb-5 px-md-5 opacity-90">Platform Pelaporan & Peringatan Dini Terpadu Kabupaten Jombang. Laporan Anda dipantau langsung oleh Diskominfo & Instansi terkait.</p>
+
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center mb-2">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-warning btn-lg px-5 py-3 rounded-pill fw-bolder shadow-lg transform-hover text-dark">
+                        <i class="bi bi-pencil-square me-2"></i> MULAI MELAPOR
+                    </a>
+                    <a href="#peta-pantauan" class="btn btn-outline-light btn-lg px-5 py-3 rounded-pill fw-bold border-2">
+                        <i class="bi bi-geo-alt me-2"></i> PETA PANTAUAN
+                    </a>
+                </div>
+                <p class="small mt-3 opacity-75 italic">*Terintegrasi dengan Command Center 112 Jombang</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="position-absolute bottom-0 start-0 w-100">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320">
+            <path fill="#ffffff" fill-opacity="1" d="M0,224L48,213.3C96,203,192,181,288,181.3C384,181,480,203,576,224C672,245,768,267,864,250.7C960,235,1056,181,1152,165.3C1248,149,1344,171,1392,181.3L1440,192L1440,320L0,320Z"></path>
+        </svg>
+    </div>
+</section>
+
+<div class="container position-relative z-3" style="margin-top: -60px;">
+    <div class="row g-4 justify-content-center">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-lg text-center p-4 rounded-4 animate__animated animate__zoomIn">
+                <h2 class="fw-bold text-primary mb-0">{{ stats.total_reports or 0 }}</h2>
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Total Laporan</small>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-lg text-center p-4 rounded-4 animate__animated animate__zoomIn" style="animation-delay: 0.1s;">
+                <h2 class="fw-bold text-success mb-0">{{ stats.selesai or 0 }}</h2>
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Selesai</small>
+            </div>
+        </div>
+        <div class="col-md-3 d-none d-md-block">
+            <div class="card border-0 shadow-lg text-center p-4 rounded-4 animate__animated animate__zoomIn" style="animation-delay: 0.2s;">
+                <h2 class="fw-bold text-info mb-0">{{ stats.total_warga or 0 }}</h2>
+                <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">Warga Aktif</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container my-5 pt-5" id="peta-pantauan">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 text-dark">
+        <div class="text-center text-md-start mb-3 mb-md-0">
+            <h2 class="fw-bold mb-0">Peta Pantauan Real-Time</h2>
+            <p class="text-muted">Visualisasi sebaran laporan warga di seluruh kecamatan Jombang</p>
+        </div>
+
+        <div class="filter-wrapper d-flex flex-wrap justify-content-center gap-2">
+            <div class="status-pill d-flex align-items-center px-3 py-2 rounded-pill shadow-sm bg-white border">
+                <span class="dot bg-success me-2"></span>
+                <span class="fw-bold small text-dark">Biasa</span>
+            </div>
+            <div class="status-pill d-flex align-items-center px-3 py-2 rounded-pill shadow-sm bg-white border">
+                <span class="dot bg-warning me-2"></span>
+                <span class="fw-bold small text-dark">Sedang</span>
+            </div>
+            <div class="status-pill d-flex align-items-center px-3 py-2 rounded-pill shadow-sm bg-white border">
+                <span class="dot bg-danger me-2"></span>
+                <span class="fw-bold small text-dark">Darurat</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-lg overflow-hidden rounded-4 position-relative">
+        <div id="liveMap" style="height: 550px; width: 100%;"></div>
+    </div>
+</div>
+
+<div class="bg-light py-5">
+    <div class="container py-4">
+        <h2 class="text-center fw-bold mb-5 text-dark text-uppercase" style="letter-spacing: 1px;">Fitur Unggulan</h2>
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center rounded-4 hover-up">
+                    <div class="icon-shape bg-soft-danger text-danger mb-4 mx-auto">
+                        <i class="bi bi-broadcast fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold">Early Warning System</h5>
+                    <p class="text-muted small">Notifikasi otomatis berbasis lokasi (Kecamatan) untuk peringatan dini bencana.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center rounded-4 hover-up">
+                    <div class="icon-shape bg-soft-primary text-primary mb-4 mx-auto">
+                        <i class="bi bi-geo-alt fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold">Geotagging Presisi</h5>
+                    <p class="text-muted small">Setiap laporan dikunci dengan koordinat GPS akurat untuk memudahkan verifikasi lapangan.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card h-100 border-0 shadow-sm p-4 text-center rounded-4 hover-up">
+                    <div class="icon-shape bg-soft-success text-success mb-4 mx-auto">
+                        <i class="bi bi-shield-check fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold">Database Terverifikasi</h5>
+                    <p class="text-muted small">Integrasi NIK memastikan setiap laporan valid dan dapat dipertanggungjawabkan.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-primary text-white py-5">
+    <div class="container text-center py-4">
+        <h2 class="fw-bold display-6">Mulai Berkontribusi Sekarang?</h2>
+        <p class="lead opacity-90 mb-4">Wujudkan Jombang yang lebih baik, aman, dan responsif melalui laporan Anda.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-warning btn-lg px-5 py-3 fw-bolder rounded-pill shadow-lg text-dark">
+            <i class="bi bi-rocket-takeoff me-2"></i> DAFTAR SEKARANG
+        </a>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+<script>
+    // Inisialisasi Peta
+    var map = L.map('liveMap', {
+        scrollWheelZoom: false
+    }).setView([-7.546, 112.233], 11);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; LaporPak Jombang'
+    }).addTo(map);
+
+    map.on('focus', () => { map.scrollWheelZoom.enable(); });
+
+    var markers = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true
+    });
+
+    // Fetch data pin dari API
+    fetch('/admin/api/reports-map-data')
+        .then(response => response.json())
+        .then(data => {
+            data.forEach(report => {
+                let mainColor, isDarurat = false;
+
+                // Sinkronisasi warna pin
+                if (report.status_warna === 'merah') {
+                    mainColor = '#ff4757';
+                    isDarurat = true;
+                } else if (report.status_warna === 'kuning') {
+                    mainColor = '#ffa502';
+                } else if (report.status_warna === 'biru' || report.status_warna === 'hijau') {
+                    mainColor = '#2ed573';
+                } else {
+                    mainColor = '#2f3542';
+                }
+
+                const shadowColor = mainColor + '66';
+
+                var customIcon = L.divIcon({
+                    className: 'custom-pin-container',
+                    html: `
+                        <div class="custom-pin" style="
+                            background-color: ${mainColor};
+                            box-shadow: 0 0 12px ${shadowColor};
+                            animation: ${isDarurat ? 'pulse-red 2s infinite' : 'none'};
+                        "></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+
+                var marker = L.marker([report.lat, report.lng], { icon: customIcon });
+
+                marker.bindPopup(`
+                    <div class="custom-popup">
+                        <div class="popup-header" style="background: ${mainColor}">
+                            ${(report.status_warna || 'Laporan').toUpperCase()}
+                        </div>
+                        <div class="p-3 text-dark">
+                            <h6 class="fw-bold mb-1">${report.judul}</h6>
+                            <p class="text-muted small mb-1"><i class="bi bi-person me-1"></i>${report.pelapor}</p>
+                            <p class="text-muted small mb-2"><i class="bi bi-tag me-1"></i>${report.kategori}</p>
+                            <hr class="my-2 opacity-25">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="small text-secondary"><i class="bi bi-clock me-1"></i>${report.created_at}</span>
+                                <a href="${report.url_detail}" class="btn btn-sm btn-dark rounded-pill px-3 py-1 text-white small">Detail</a>
+                            </div>
+                        </div>
+                    </div>
+                `, { maxWidth: 250, className: 'modern-popup' });
+
+                markers.addLayer(marker);
+            });
+            map.addLayer(markers);
+        })
+        .catch(err => console.error("Gagal memuat peta:", err));
+</script>
+
+<style>
+    /* Styling Dasar */
+    .hover-up:hover { transform: translateY(-10px); transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    .transform-hover:hover { transform: scale(1.05); transition: all 0.2s ease; }
+    .icon-shape { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+
+    .bg-soft-danger { background-color: rgba(220, 53, 69, 0.1); }
+    .bg-soft-primary { background-color: rgba(13, 110, 253, 0.1); }
+    .bg-soft-success { background-color: rgba(25, 135, 84, 0.1); }
+
+    /* Legend Status */
+    .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .status-pill { transition: all 0.3s ease; cursor: default; min-width: 100px; justify-content: center; }
+
+    /* Marker Pin & Animasi */
+    .custom-pin { width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; transition: all 0.3s ease; }
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+    }
+
+    /* Popup Styling */
+    .modern-popup .leaflet-popup-content-wrapper { border-radius: 15px; padding: 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: none; }
+    .modern-popup .leaflet-popup-content { margin: 0; width: 250px !important; }
+    .popup-header { padding: 8px 15px; color: white; font-size: 0.65rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .leaflet-popup-tip-container { display: none; }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        #liveMap { height: 400px; }
+        .hero-header { padding: 60px 0; }
+        .display-3 { font-size: 2.2rem; }
+    }
+</style>
+{% endblock %}

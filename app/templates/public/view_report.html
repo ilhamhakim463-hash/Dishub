@@ -1,0 +1,368 @@
+{% extends "base.html" %}
+{% block title %}{{ report.judul }} - LaporPak Jombang{% endblock %}
+
+{% block content %}
+<style>
+    :root {
+        --jombang-blue: #007bff;
+        --soft-bg: #f4f7fe;
+        --success-stamp: #198754;
+    }
+    body { background-color: var(--soft-bg); }
+    .rounded-4 { border-radius: 1.25rem !important; }
+    .bg-soft-primary { background-color: rgba(0, 123, 255, 0.1); }
+    .x-small { font-size: 0.75rem; }
+    .tracking-wider { letter-spacing: 0.05em; }
+
+    /* Sinkronisasi Warna Dashboard Enterprise */
+    .bg-merah { background-color: #ef4444 !important; color: white; }
+    .bg-kuning { background-color: #f59e0b !important; color: white !important; }
+    .bg-biru { background-color: #3b82f6 !important; color: white; }
+
+    /* NOMOR 5: CAP SUKSES STAMP - POSISI TENGAH GAMBAR */
+    .stamp-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        pointer-events: none;
+        z-index: 10;
+    }
+    .stamp-sukses-view {
+        border: 8px double var(--success-stamp);
+        color: var(--success-stamp);
+        font-family: 'Arial Black', sans-serif;
+        font-size: 4rem;
+        font-weight: 900;
+        padding: 10px 40px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        transform: rotate(-20deg);
+        opacity: 0.4;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(2px);
+    }
+
+    /* Animation for Urgency */
+    .blink-soft { animation: blinker 2s linear infinite; }
+    @keyframes blinker { 50% { opacity: 0.6; } }
+
+    /* CCTV Simulation Styling */
+    .cctv-overlay {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        z-index: 5;
+        font-family: 'Courier New', Courier, monospace;
+        color: #ff0000;
+        text-shadow: 1px 1px 2px black;
+    }
+
+    .img-zoom-container { overflow: hidden; background: #000; }
+    .img-zoom-container img { transition: transform 0.5s ease; }
+    .img-zoom-container:hover img { transform: scale(1.03); }
+
+    .card-response { border-left: 6px solid var(--jombang-blue) !important; }
+
+    /* Marker Pin */
+    .marker-pin { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -15px 0 0 -15px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .pin-icon { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; transform: rotate(45deg); }
+</style>
+
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-transparent p-0 mb-4">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.feed') }}" class="text-decoration-none text-primary fw-600">Feed Publik</a></li>
+            <li class="breadcrumb-item active text-muted" aria-current="page">Detail #{{ report.id }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+                <div class="img-zoom-container position-relative">
+                    {% if report.status_label == 'SUKSES' %}
+                    <div class="stamp-overlay">
+                        <div class="stamp-sukses-view">SUKSES</div>
+                    </div>
+                    {% endif %}
+
+                    {% if report.foto_awal %}
+                    <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_awal) }}"
+                         class="img-fluid w-100" alt="{{ report.judul }}" style="max-height: 500px; object-fit: cover;">
+                    {% else %}
+                    <div style="height:300px" class="bg-light d-flex align-items-center justify-content-center text-muted">
+                        <i class="bi bi-image fs-1"></i>
+                    </div>
+                    {% endif %}
+
+                    <div class="position-absolute top-0 end-0 m-3" style="z-index: 11;">
+                        {% set status_class = 'bg-biru' if report.status_warna == 'biru' else ('bg-kuning' if report.status_warna == 'kuning' else 'bg-merah') %}
+                        <span class="badge {{ status_class }} shadow-lg px-4 py-2 fs-6 rounded-pill">
+                            {{ (report.status_warna or 'MENUNGGU').upper() }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 p-md-5">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-3 gap-2">
+                        <h1 class="fw-bold text-dark mb-0 display-6">{{ report.judul }}</h1>
+                        <span class="text-muted small align-self-md-center">
+                            <i class="bi bi-calendar3 me-1"></i> {{ report.created_at.strftime('%d %b %Y') }}
+                        </span>
+                    </div>
+
+                    <div class="mb-4 d-flex flex-wrap gap-2">
+                        <span class="badge bg-soft-primary text-primary px-3 py-2 rounded-pill">
+                            <i class="bi bi-tag-fill me-1"></i> {{ report.kategori }}
+                        </span>
+                        {% if report.urgency_level == 1 or report.status_warna == 'merah' %}
+                        <span class="badge bg-danger blink-soft px-3 py-2 rounded-pill shadow-sm">🚨 DARURAT</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="report-description mb-5">
+                        <p class="fs-5 text-secondary lh-base">{{ report.deskripsi }}</p>
+                    </div>
+
+                    {% if report.komentar_admin %}
+                    <div class="alert alert-primary border-0 rounded-4 p-4 mb-5">
+                        <h6 class="fw-bold d-flex align-items-center mb-2">
+                            <i class="bi bi-megaphone-fill me-2"></i> UPDATE TERKINI INSTANSI
+                        </h6>
+                        <p class="mb-0 text-dark">{{ report.komentar_admin }}</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3 mb-5">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-danger h-100">
+                                <label class="x-small fw-bold text-muted d-block mb-1 text-uppercase">Lokasi Kejadian</label>
+                                <div class="d-flex align-items-start">
+                                    <i class="bi bi-geo-alt-fill text-danger me-2 mt-1"></i>
+                                    <span class="text-dark fw-medium small">{{ report.alamat_manual or 'Lokasi tidak spesifik' }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-4 border-start border-4 border-primary h-100">
+                                <label class="x-small fw-bold text-muted d-block mb-1 text-uppercase">Identitas Pelapor</label>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-circle text-primary me-2 mt-1"></i>
+                                    <span class="text-dark fw-medium small">
+                                        {{ report.author.nama if report.author else 'Masyarakat Jombang' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if report.latitude and report.longitude %}
+                    <div class="map-section">
+                        <h6 class="fw-bold text-dark mb-3 text-uppercase small"><i class="bi bi-pin-map-fill text-primary me-2"></i>Titik Lokasi Presisi</h6>
+                        <div id="mapDetail" style="height:350px" class="rounded-4 shadow-sm border"></div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if report.foto_proses or report.foto_selesai %}
+            <div class="card border-0 shadow-sm rounded-4 mb-4 card-response bg-white overflow-hidden">
+                <div class="card-header bg-white py-3 px-4 border-0">
+                    <h5 class="mb-0 fw-bold text-dark d-flex align-items-center">
+                        <i class="bi bi-patch-check-fill text-primary me-2"></i>Dokumentasi Penanganan
+                    </h5>
+                </div>
+                <div class="card-body p-4 pt-0">
+                    <div class="row g-3">
+                        {% if report.foto_proses %}
+                        <div class="col-md-6 col-12">
+                            <div class="position-relative">
+                                <label class="x-small fw-bold text-muted mb-2 d-flex align-items-center tracking-wider">
+                                    <span class="bg-primary-subtle text-primary px-2 py-1 rounded me-2">TAHAP 1</span> PROSES PENGERJAAN
+                                </label>
+                                <div class="img-zoom-container rounded-4 shadow-sm border border-light" style="height: 250px;">
+                                    <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_proses) }}"
+                                         class="w-100 h-100"
+                                         alt="Foto Proses"
+                                         style="object-fit: cover;"
+                                         onerror="this.src='https://placehold.co/600x400?text=Foto+Proses+Sedang+Dimuat'">
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if report.foto_selesai %}
+                        <div class="col-md-6 col-12">
+                            <div class="position-relative">
+                                <label class="x-small fw-bold text-muted mb-2 d-flex align-items-center tracking-wider">
+                                    <span class="bg-success-subtle text-success px-2 py-1 rounded me-2">TAHAP 2</span> HASIL AKHIR
+                                </label>
+                                <div class="img-zoom-container rounded-4 shadow-sm border border-success border-2" style="height: 250px; position: relative;">
+                                    <div class="position-absolute top-0 end-0 m-2" style="z-index: 5;">
+                                        <span class="badge bg-success rounded-pill px-2 py-1 shadow-sm small">SELESAI</span>
+                                    </div>
+                                    <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_selesai) }}"
+                                         class="w-100 h-100"
+                                         alt="Foto Selesai"
+                                         style="object-fit: cover;"
+                                         onerror="this.src='https://placehold.co/600x400?text=Foto+Selesai+Sedang+Dimuat'">
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="d-flex flex-wrap gap-2 mb-4">
+                <button class="btn btn-primary rounded-pill px-4 shadow-sm btn-lg fs-6" onclick="supportReport({{ report.id }})">
+                    <i class="bi bi-hand-thumbs-up-fill me-2"></i> Dukung (<span id="supportCount">{{ report.support_count or 0 }}</span>)
+                </button>
+                <button class="btn btn-outline-primary rounded-pill px-4 btn-lg fs-6 bg-white" data-bs-toggle="collapse" data-bs-target="#commentSection">
+                    <i class="bi bi-chat-dots-fill me-2"></i> Komentar
+                </button>
+                <button class="btn btn-outline-dark rounded-pill px-4 btn-lg fs-6 bg-white" onclick="shareReport()">
+                    <i class="bi bi-share-fill"></i>
+                </button>
+            </div>
+
+            <div class="collapse show mb-5" id="commentSection">
+                <div class="card border-0 shadow-sm rounded-4 bg-white">
+                    <div class="card-header bg-white fw-bold py-3 border-bottom px-4">Diskusi Publik</div>
+                    <div class="card-body p-4">
+                        {% if current_user.is_authenticated %}
+                        <form method="POST" action="{{ url_for('main.add_comment', report_id=report.id) }}" class="mb-4">
+                            <div class="input-group bg-light p-2 rounded-pill border">
+                                <input type="text" class="form-control border-0 bg-transparent ps-3" name="konten" placeholder="Tulis komentar atau informasi tambahan..." required>
+                                <button class="btn btn-primary rounded-pill px-4" type="submit">Kirim</button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <div class="alert alert-warning rounded-pill py-2 px-4 x-small text-center">
+                            Silakan <a href="{{ url_for('auth.login') }}">Login</a> untuk ikut berdiskusi.
+                        </div>
+                        {% endif %}
+
+                        <div class="comment-list">
+                            {% for interaction in comments %}
+                            <div class="d-flex mb-4 p-3 rounded-4 bg-light bg-opacity-50 border-bottom">
+                                <img src="{{ url_for('static', filename='uploads/profiles/' + (interaction.user.foto_profil or 'default.png')) }}"
+                                     class="rounded-circle me-3 shadow-sm border border-2 border-white" width="45" height="45" style="object-fit: cover;">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <h6 class="mb-0 fw-bold small">{{ interaction.user.nama }}</h6>
+                                        <span class="text-muted x-small">{{ interaction.created_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                                    </div>
+                                    <p class="mb-0 small text-secondary">{{ interaction.konten }}</p>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="bi bi-chat-dots fs-2 text-muted opacity-25"></i>
+                                <p class="text-muted small mt-2">Belum ada komentar.</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card mb-4 border-0 shadow-sm rounded-4 text-center p-3 bg-white">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3 text-uppercase small text-muted tracking-wider">Statistik Laporan</h6>
+                    <div class="row g-0">
+                        <div class="col-6 border-end">
+                            <h3 class="fw-bold text-primary mb-0">{{ report.support_count or 0 }}</h3>
+                            <small class="text-muted x-small">DUKUNGAN</small>
+                        </div>
+                        <div class="col-6">
+                            <h3 class="fw-bold text-success mb-0">{{ comments|length }}</h3>
+                            <small class="text-muted x-small">KOMENTAR</small>
+                        </div>
+                    </div>
+                    <hr class="my-3 opacity-25">
+                    <span class="badge bg-light text-dark border rounded-pill px-3">ID: #LPK-{{ report.id }}</span>
+                </div>
+            </div>
+
+            <div class="card mb-4 border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3 px-4 border-0">
+                    <span class="small fw-bold d-flex align-items-center">
+                        <span class="d-inline-block bg-danger rounded-circle me-2 blink-soft" style="width:8px; height:8px;"></span>
+                        CCTV RADIUS MONITOR
+                    </span>
+                    <span class="badge bg-danger rounded-pill x-small">LIVE</span>
+                </div>
+                <div id="cctv-screen" class="bg-black d-flex align-items-center justify-content-center" style="height: 220px; position: relative;">
+                    <div id="cctv-rec" class="cctv-overlay x-small" style="display:none;">● REC CAM-{{ report.id }}</div>
+                    <div class="text-center text-white p-4" id="cctv-placeholder">
+                        <i class="bi bi-geo-alt-fill fs-1 text-primary mb-2"></i>
+                        <p class="x-small mb-0 text-secondary opacity-75">Tekan tombol di bawah untuk visual satelit lokasi.</p>
+                    </div>
+                </div>
+                <div class="card-body bg-white p-3">
+                    <button class="btn btn-dark w-100 rounded-pill btn-sm fw-bold py-2" onclick="startCCTVStream()">
+                        <i class="bi bi-broadcast me-2"></i>HUBUNGKAN KAMERA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+{% if report.latitude and report.longitude %}
+    const map = L.map('mapDetail', { scrollWheelZoom: false }).setView([{{ report.latitude }}, {{ report.longitude }}], 16);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+
+    const color = "{{ 'ef4444' if report.status_warna == 'merah' else 'f59e0b' if report.status_warna == 'kuning' else '3b82f6' }}";
+
+    L.marker([{{ report.latitude }}, {{ report.longitude }}], {
+        icon: L.divIcon({
+            html: `<div class="marker-pin shadow" style="background-color: #${color}"></div><i class="bi bi-geo-alt-fill pin-icon"></i>`,
+            className: 'custom-div-icon',
+            iconSize: [30, 42], iconAnchor: [15, 42]
+        })
+    }).addTo(map).bindPopup('Titik Lokasi Kejadian').openPopup();
+{% endif %}
+
+function supportReport(id) {
+    fetch(`/report/${id}/support`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if(data.status === 'success') {
+            document.getElementById('supportCount').textContent = data.count;
+            alert(data.message);
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(() => alert('Silakan login untuk memberikan dukungan.'));
+}
+
+function shareReport() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('Link laporan berhasil disalin ke clipboard!');
+    });
+}
+
+function startCCTVStream() {
+    const screen = document.getElementById('cctv-screen');
+    const recIndicator = document.getElementById('cctv-rec');
+    screen.innerHTML = `<iframe src="https://maps.google.com/maps?q={{ report.latitude }},{{ report.longitude }}&z=18&t=k&output=embed" style="width:100%;height:100%;border:0;"></iframe>`;
+    recIndicator.style.display = 'block';
+}
+</script>
+{% endblock %}

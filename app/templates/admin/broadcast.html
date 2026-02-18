@@ -1,0 +1,196 @@
+{% extends "admin/admin_layout.html" %}
+{% block title %}Siaran Darurat - Admin{% endblock %}
+
+{% block content %}
+<style>
+    /* Premium Admin Styling */
+    :root {
+        --ews-danger: #dc3545;
+        --ews-dark: #212529;
+        --soft-red: rgba(220, 53, 69, 0.08);
+    }
+
+    body { background-color: #f8f9fa; }
+
+    .card {
+        border: none;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        transition: transform 0.3s ease;
+    }
+
+    /* Animation for Broadcast Icon */
+    @keyframes pulse-red {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.7; }
+        100% { transform: scale(1); opacity: 1; }
+    }
+
+    .bi-broadcast-pin {
+        display: inline-block;
+        animation: pulse-red 2s infinite;
+    }
+
+    /* Form Styling */
+    .form-control, .form-select {
+        border: 2px solid transparent;
+        padding: 0.75rem 1.2rem;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .form-control:focus, .form-select:focus {
+        background-color: #fff !important;
+        border-color: var(--ews-danger) !important;
+        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.1) !important;
+    }
+
+    .bg-soft-danger {
+        background-color: var(--soft-red);
+        font-weight: 600;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 20px rgba(220, 53, 69, 0.2) !important;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+        border: none;
+    }
+
+    /* Digital Clock Styling */
+    .clock-display {
+        background: linear-gradient(135deg, #212529 0%, #343a40 100%);
+        color: #fff;
+    }
+
+    @media (max-width: 768px) {
+        .fs-md-2 { font-size: 1.5rem !important; }
+    }
+</style>
+
+<div class="container-fluid py-2 py-md-4 text-dark">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-1 fs-3 fs-md-2 text-danger">
+                <i class="bi bi-broadcast-pin"></i> Siaran Peringatan Dini (EWS)
+            </h2>
+            <p class="text-muted mb-0 small">Kirim notifikasi bencana otomatis berdasarkan wilayah kecamatan warga</p>
+        </div>
+        <span class="badge bg-soft-danger text-danger border border-danger px-3 d-none d-md-inline py-2">
+            <i class="bi bi-shield-check me-1"></i> Dishub Enterprise System
+        </span>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show border-0 shadow-sm mb-4 rounded-3" role="alert">
+                    <i class="bi {{ 'bi-check-circle-fill' if category == 'success' else 'bi-exclamation-triangle-fill' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card rounded-4">
+                <div class="card-body p-3 p-md-4">
+                    <form action="{{ url_for('admin.broadcast') }}" method="POST" id="broadcastForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Tipe Peringatan</label>
+                            <input type="text" name="tipe" class="form-control form-control-lg bg-light"
+                                   placeholder="Contoh: Banjir Bandang, Kebakaran, Perbaikan Jalan" required>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Wilayah Terdampak</label>
+                                <select name="wilayah" class="form-select bg-light">
+                                    <option value="Semua">Semua Kecamatan</option>
+                                    <option value="Jombang">Kec. Jombang</option>
+                                    <option value="Mojoagung">Kec. Mojoagung</option>
+                                    <option value="Sumobito">Kec. Sumobito</option>
+                                    <option value="Peterongan">Kec. Peterongan</option>
+                                    <option value="Tembelang">Kec. Tembelang</option>
+                                    <option value="Ploso">Kec. Ploso</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-muted text-uppercase">Level Bahaya</label>
+                                <select name="level" class="form-select bg-light">
+                                    <option value="waspada" class="text-warning">🟡 Waspada (Kuning)</option>
+                                    <option value="siaga" class="text-warning">🟠 Siaga (Oranye)</option>
+                                    <option value="bahaya" class="text-danger" selected>🔴 Bahaya (Merah)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold small text-muted text-uppercase">Pesan Instruksi</label>
+                            <textarea name="pesan" class="form-control bg-light" rows="5"
+                                      placeholder="Tulis instruksi keselamatan bagi warga secara detail..." required></textarea>
+                            <div class="form-text text-muted mt-2 d-flex align-items-center">
+                                <i class="bi bi-info-circle me-2"></i> Pesan akan dikirim langsung ke WhatsApp warga yang terdaftar.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-danger w-100 py-3 fw-bold shadow-sm rounded-3 hover-lift fs-5">
+                            <i class="bi bi-send-check-fill me-2"></i> SIARKAN KE WHATSAPP WARGA
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 bg-white shadow-sm rounded-4 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3 text-primary">
+                        <i class="bi bi-info-circle-fill fs-4 me-2"></i>
+                        <h5 class="fw-bold mb-0">Info Sistem</h5>
+                    </div>
+                    <p class="text-secondary small mb-3" style="line-height: 1.6;">
+                        Sistem akan mem-filter data warga secara otomatis berdasarkan kolom <code>kecamatan</code> pada tabel <code>users</code>.
+                    </p>
+                    <hr class="text-muted my-3">
+                    <div class="alert alert-warning border-0 small mb-0 p-3 rounded-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Peringatan Penting:</strong> Siaran ini bersifat massal. Pastikan data koordinasi sudah valid sebelum tombol kirim ditekan karena tindakan ini tidak bisa dibatalkan.
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm rounded-4 clock-display">
+                <div class="card-body p-4 text-center">
+                    <h1 class="fw-bold mb-0 text-warning" id="digitalClock">{{ now.strftime('%H:%M') }}</h1>
+                    <p class="small mb-0 opacity-75">{{ now.strftime('%d %B %Y') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Konfirmasi Sebelum Pengiriman Massal
+    document.getElementById('broadcastForm').addEventListener('submit', function(e) {
+        const wilayah = document.querySelector('select[name="wilayah"]').value;
+        const confirmMsg = `PERINGATAN!\n\nAnda akan mengirim pesan massal ke wilayah: ${wilayah.toUpperCase()}.\nApakah Anda yakin pesan sudah benar?`;
+
+        if (!confirm(confirmMsg)) {
+            e.preventDefault();
+        }
+    });
+
+    // Jam Digital Real-time
+    function updateClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('digitalClock').textContent = `${hours}:${minutes}`;
+    }
+    setInterval(updateClock, 10000); // Update tiap 10 detik
+</script>
+{% endblock %}

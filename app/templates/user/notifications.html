@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Notifikasi{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Notifikasi</h2>
+    
+    <div class="list-group">
+        {% for notif in notifications %}
+        <div class="list-group-item {% if not notif.is_read %}bg-light{% endif %}">
+            <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">{{ notif.title }}</h6>
+                <small>{{ notif.created_at.strftime('%d/%m %H:%M') }}</small>
+            </div>
+            <p class="mb-1">{{ notif.message }}</p>
+            {% if notif.report_id %}
+            <a href="{{ url_for('public.view_report', report_id=notif.report_id) }}" class="btn btn-sm btn-primary">
+                Lihat Laporan
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
