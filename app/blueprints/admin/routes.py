@@ -9,12 +9,14 @@ import os
 from werkzeug.utils import secure_filename
 
 
-# --- HELPER: SAVE UPLOAD ---
+# --- HELPER: SAVE UPLOAD (SINKRON DENGAN FEEDBACK ADMIN) ---
 def save_feedback_photo(file):
     """Fungsi pembantu untuk menyimpan foto progres/selesai dari admin"""
     if file:
         filename = secure_filename(f"feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
-        upload_folder = os.path.join(current_app.root_path, 'static/uploads/reports')
+        # Menggunakan current_app.root_path agar path absolut selalu benar
+        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'reports')
+
         if not os.path.exists(upload_folder):
             os.makedirs(upload_folder)
 
@@ -23,7 +25,7 @@ def save_feedback_photo(file):
     return None
 
 
-# --- CONTEXT PROCESSOR (Navigasi Sidebar) ---
+# --- CONTEXT PROCESSOR (Navigasi Sidebar Dashboard Admin) ---
 @admin.app_context_processor
 def inject_status_nav():
     status_menu = [
@@ -38,31 +40,32 @@ def inject_status_nav():
 @admin.before_request
 @login_required
 def is_admin():
+    """Memastikan hanya user dengan role 'admin' yang bisa masuk ke blueprint ini"""
     if current_user.role != 'admin':
         flash('Akses ditolak! Anda bukan administrator.', 'danger')
-        return redirect(url_for('main.feed'))
+        return redirect(url_for('main.dashboard'))
 
 
 # --- DASHBOARD & STATISTIK (FIXED & FULL LOGIC) ---
 @admin.route('/dashboard')
 def dashboard():
     """
-    Menghitung statistik utama untuk Command Center.
-    Sinkronisasi otomatis dengan card: Total, SLA Overdue, Sedang, dan Tuntas.
+    Menghitung statistik utama Command Center.
+    Sinkron dengan card: Total, SLA Overdue, Sedang, dan Tuntas.
     """
     reports_query = Report.query
 
-    # Sinkronisasi Statistik Utama agar muncul di Card Dashboard
+    # Statistik Utama untuk Card Dashboard (Nilai Tidak Tetap)
     stats = {
         'total_reports': reports_query.count(),
-        'darurat': reports_query.filter_by(status_warna='merah').count(),  # Map ke Card SLA Overdue
-        'sedang': reports_query.filter_by(status_warna='kuning').count(),  # Map ke Card Urgency Sedang
-        'proses': reports_query.filter_by(status_warna='biru').count(),
-        'selesai': reports_query.filter_by(status_warna='hijau').count(),  # Map ke Card Tuntas (Selesai)
-        'total_warga': User.query.filter_by(role='user').count()
+        'darurat': reports_query.filter_by(status_warna='merah').count(),  # SLA Overdue / Urgent
+        'sedang': reports_query.filter_by(status_warna='kuning').count(),  # Urgency Sedang
+        'proses': reports_query.filter_by(status_warna='biru').count(),  # Sedang Dikerjakan
+        'selesai': reports_query.filter_by(status_warna='hijau').count(),  # Tuntas
+        'total_warga': User.query.filter(User.role != 'admin').count()
     }
 
-    # Data grafik mingguan (7 hari terakhir)
+    # Logika Grafik Mingguan (7 Hari Terakhir)
     days, weekly_data = [], []
     day_labels = {'Mon': 'Sen', 'Tue': 'Sel', 'Wed': 'Rab', 'Thu': 'Kam', 'Fri': 'Jum', 'Sat': 'Sab', 'Sun': 'Min'}
 
@@ -94,7 +97,7 @@ def dashboard():
 # --- API MAPS (SINKRONISASI PIN MULTI-WARNA) ---
 @admin.route('/api/reports-map-data')
 def reports_map_data():
-    """Endpoint API untuk Leaflet.js dengan perbaikan data agar tidak 'undefined' di popup"""
+    """Endpoint API untuk merender marker di Peta Leaflet/Google Maps Admin"""
     reports = Report.query.filter(
         Report.latitude.isnot(None),
         Report.longitude.isnot(None),
@@ -103,7 +106,7 @@ def reports_map_data():
 
     data = []
     for r in reports:
-        # Penentuan label urgensi untuk Popup
+        # Penentuan label urgensi teks berdasarkan warna status
         urgensi_text = "BIASA"
         if r.status_warna == 'merah':
             urgensi_text = "DARURAT"
@@ -115,7 +118,7 @@ def reports_map_data():
             'judul': r.judul or "Tanpa Judul",
             'lat': r.latitude,
             'lng': r.longitude,
-            'status_warna': r.status_warna or 'hijau',
+            'status_warna': r.status_warna or 'biru',
             'urgensi_label': urgensi_text,
             'foto': r.foto_awal if r.foto_awal else None,
             'pelapor': r.author.nama if r.author else 'Anonim',
@@ -126,10 +129,10 @@ def reports_map_data():
     return jsonify(data)
 
 
-# --- LOG LAPORAN ---
+# --- LOG LAPORAN (MANAGEMENT TABLE) ---
 @admin.route('/reports')
 def reports():
-    """Manajemen daftar laporan dengan filter status dan pencarian"""
+    """Manajemen daftar laporan dengan filter status dan pencarian global"""
     status_filter = request.args.get('status', 'Semua').lower()
     search = request.args.get('search', '')
     query = Report.query
@@ -143,27 +146,30 @@ def reports():
     if search:
         query = query.filter(or_(
             Report.judul.ilike(f'%{search}%'),
-            Report.id.ilike(f'%{search}%'),
-            Report.alamat_manual.ilike(f'%{search}%')
+            Report.id.ilike(f'%{search}%')
         ))
 
     reports_list = query.order_by(Report.created_at.desc()).all()
     return render_template('admin/reports.html', reports=reports_list)
 
 
-# --- UPDATE PROGRESS ---
+# --- UPDATE PROGRESS (ADMIN FEEDBACK LOGIC) ---
 @admin.route('/report/<int:report_id>/update-progress', methods=['POST'])
 def update_progress(report_id):
-    """Merubah status laporan dan mengunggah bukti pengerjaan"""
+    """Menangani perubahan status dan upload bukti penyelesaian oleh admin"""
     report = Report.query.get_or_404(report_id)
     status_baru = request.form.get('status_warna')
     komentar_admin = request.form.get('komentar_admin')
 
     if status_baru:
+        # Simpan status lama untuk pengecekan poin nanti
+        status_lama = report.status_warna
         report.status_warna = status_baru
+
         if komentar_admin:
             report.komentar_admin = komentar_admin
 
+        # Handle Upload Foto Progress/Selesai
         if 'foto_feedback' in request.files:
             file = request.files['foto_feedback']
             if file and file.filename != '':
@@ -173,15 +179,14 @@ def update_progress(report_id):
                 elif status_baru == 'hijau':
                     report.foto_selesai = filename
 
-        # Sinkronisasi Label Database
-        labels = {'merah': 'DARURAT', 'kuning': 'SEDANG', 'hijau': 'SUKSES', 'biru': 'DIPROSES'}
-        report.status_label = labels.get(status_baru, 'PENDING')
-
-        if status_baru == 'hijau':
+        # Update Poin User jika Laporan Selesai (Penghargaan Warga)
+        if status_baru == 'hijau' and status_lama != 'hijau':
+            if report.author:
+                report.author.poin_warga = (report.author.poin_warga or 0) + 20
             report.resolved_at = datetime.utcnow()
 
         db.session.commit()
-        flash(f'Status Laporan #{report_id} berhasil diperbarui!', 'success')
+        flash(f'Laporan #{report_id} diperbarui ke status {status_baru.upper()}!', 'success')
 
     return redirect(request.referrer or url_for('admin.dashboard'))
 
@@ -189,6 +194,7 @@ def update_progress(report_id):
 # --- USER MANAGEMENT ---
 @admin.route('/users')
 def users():
+    """Melihat daftar warga mahasantri/user yang terdaftar"""
     users_list = User.query.filter(User.role != 'admin').order_by(User.id.desc()).all()
     return render_template('admin/users.html', users=users_list)
 
@@ -196,23 +202,26 @@ def users():
 # --- VIEW DETAIL ---
 @admin.route('/report/<int:report_id>/view')
 def view_report(report_id):
+    """Melihat detail lengkap satu laporan termasuk koordinat GPS"""
     report = Report.query.get_or_404(report_id)
     return render_template('admin/view_report.html', report=report)
 
 
-# --- BROADCAST SYSTEM ---
+# --- BROADCAST SYSTEM (SIARAN DARURAT) ---
 @admin.route('/broadcast', methods=['GET', 'POST'])
 def broadcast():
+    """Mengirim pesan broadcast bencana/darurat ke seluruh landing page warga"""
     if request.method == 'POST':
         alert = EmergencyAlert(
             tipe_bencana=request.form.get('tipe_bencana'),
             pesan=request.form.get('pesan'),
             wilayah_terdampak=request.form.get('wilayah_terdampak'),
-            level_bahaya=request.form.get('level_bahaya')
+            level_bahaya=request.form.get('level_bahaya'),
+            created_at=datetime.utcnow()
         )
         db.session.add(alert)
         db.session.commit()
-        flash('Siaran Darurat berhasil disebarluaskan!', 'success')
+        flash('Siaran Darurat berhasil dipublikasikan!', 'success')
         return redirect(url_for('admin.broadcast'))
 
     alerts = EmergencyAlert.query.order_by(EmergencyAlert.created_at.desc()).all()
@@ -222,11 +231,11 @@ def broadcast():
 # --- EXPORT HANDLERS ---
 @admin.route('/export/excel')
 def export_excel():
-    flash('Fitur Export Excel sedang disiapkan.', 'info')
+    flash('Fitur Export Excel sedang disiapkan untuk laporan bulanan.', 'info')
     return redirect(url_for('admin.dashboard'))
 
 
 @admin.route('/export/pdf')
 def export_pdf():
-    flash('Menghasilkan dokumen PDF...', 'info')
+    flash('Menghasilkan dokumen PDF Command Center...', 'info')
     return redirect(url_for('admin.dashboard'))

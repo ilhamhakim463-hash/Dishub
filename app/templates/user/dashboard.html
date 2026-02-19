@@ -7,30 +7,30 @@
         <div class="col-12">
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-2">
-                    <li class="breadcrumb-item small"><a href="#" class="text-decoration-none text-muted">Dashboard</a></li>
-                    <li class="breadcrumb-item small active text-primary" aria-current="page">Overview</li>
+                    <li class="breadcrumb-item small"><a href="{{ url_for('main.index') }}" class="text-decoration-none text-muted">Home</a></li>
+                    <li class="breadcrumb-item small active text-primary" aria-current="page">Dashboard</li>
                 </ol>
             </nav>
-            <h2 class="fw-bold text-dark">Selamat Datang, <span class="text-primary">{{ current_user.nama }}</span> ✨</h2>
+            <h2 class="fw-bold text-dark">Selamat Datang, <span class="text-primary text-capitalize">{{ current_user.nama }}</span> ✨</h2>
             <p class="text-muted">Pantau kontribusi dan laporan Anda untuk Jombang yang lebih baik.</p>
         </div>
     </div>
 
     <div class="row g-4 mb-4">
         <div class="col-md-4">
-            <div class="bento-card bg-white shadow-soft">
+            <div class="bento-card bg-white shadow-soft h-100">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div class="icon-box bg-light-primary"><i class="bi bi-file-earmark-text text-primary"></i></div>
                         <span class="badge bg-soft-primary text-primary">Total Laporan</span>
                     </div>
                     <h2 class="fw-bold mb-0 text-dark">{{ stats.total if stats.total is defined else 0 }}</h2>
-                    <p class="small text-muted mb-0 mt-2">Seluruh aduan yang dikirim</p>
+                    <p class="small text-muted mb-0 mt-2">Seluruh aduan yang Anda kirim</p>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
-            <div class="bento-card bg-white shadow-soft">
+            <div class="bento-card bg-white shadow-soft h-100">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div class="icon-box bg-light-warning"><i class="bi bi-hourglass-split text-warning"></i></div>
@@ -42,33 +42,36 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="bento-card bg-white shadow-soft">
+            <div class="bento-card bg-white shadow-soft h-100">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div class="icon-box bg-light-success"><i class="bi bi-check2-circle text-success"></i></div>
-                        <span class="badge bg-soft-success text-success">Selesai Beres</span>
+                        <span class="badge bg-soft-success text-success">Selesai Tuntas</span>
                     </div>
                     <h2 class="fw-bold mb-0 text-dark">{{ stats.selesai if stats.selesai is defined else 0 }}</h2>
-                    <p class="small text-muted mb-0 mt-2">Laporan yang telah tuntas</p>
+                    <p class="small text-muted mb-0 mt-2">Laporan yang telah tuntas diperbaiki</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4 mb-5">
         <div class="col-md-7">
             <div class="card border-0 impact-card text-white h-100 shadow-lg overflow-hidden">
                 <div class="card-body p-5 position-relative">
                     <div class="z-1 position-relative">
                         <div class="d-flex align-items-center mb-4">
                             <span class="badge bg-glass-white me-2">Impact Score</span>
-                            <span class="badge rounded-pill bg-white text-primary fw-bold">LEVEL: LEGEND 🏆</span>
+                            {% set poin = current_user.poin_warga or 0 %}
+                            <span class="badge rounded-pill bg-white text-primary fw-bold">
+                                LEVEL: {% if poin > 100 %}LEGEND 🏆{% elif poin > 50 %}HERO 🛡️{% else %}CITIZEN 🤝{% endif %}
+                            </span>
                         </div>
                         <div class="d-flex align-items-baseline">
-                            <h1 class="display-1 fw-bold mb-0">130</h1>
+                            <h1 class="display-1 fw-bold mb-0">{{ poin }}</h1>
                             <span class="ms-3 h4 opacity-75">Points</span>
                         </div>
-                        <p class="mt-3 opacity-75 lead">Poin Anda berkontribusi besar dalam menjaga fasilitas publik Jombang.</p>
+                        <p class="mt-3 opacity-75 lead">Anda sangat membantu Dishub Jombang dalam menjaga fasilitas publik.</p>
                     </div>
                     <div class="glass-shape-1"></div>
                     <div class="glass-shape-2"></div>
@@ -80,24 +83,117 @@
             <div class="card border-0 bg-white h-100 p-4 shadow-soft rounded-4">
                 <h6 class="fw-bold text-muted mb-4 text-uppercase" style="letter-spacing: 1px;">Aksi Cepat</h6>
                 <div class="d-grid gap-3">
-                    <a href="{{ url_for('user.create_report') }}" class="btn btn-primary btn-action shadow-primary py-3">
+                    <a href="{{ url_for('main.create_report') }}" class="btn btn-primary btn-action shadow-primary py-3 text-white">
                         <i class="bi bi-megaphone-fill me-2"></i> Buat Laporan Baru
                     </a>
-                    <a href="{{ url_for('user.my_reports') }}" class="btn btn-outline-secondary btn-action py-3 text-dark">
-                        <i class="bi bi-clock-history me-2"></i> Riwayat Laporan
-                    </a>
+                    <button class="btn btn-outline-secondary btn-action py-3 text-dark" onclick="document.getElementById('my-reports-section').scrollIntoView({behavior: 'smooth'})">
+                        <i class="bi bi-clock-history me-2"></i> Lihat Riwayat Laporan
+                    </button>
                 </div>
 
                 <div class="mt-auto pt-4 border-top">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div class="d-flex align-items-center">
                             <div class="status-dot-active me-2"></div>
-                            <span class="fw-bold small text-dark">Sistem Sinkron</span>
+                            <span class="fw-bold small text-dark">Sistem Terhubung</span>
                         </div>
                         <span class="badge bg-light text-dark fw-normal" id="live-clock">--:--:--</span>
                     </div>
-                    <p class="text-muted mb-0" style="font-size: 0.75rem;">Setiap laporan akan divalidasi oleh Command Center dalam waktu estimasi 2x24 jam.</p>
+                    <p class="text-muted mb-0" style="font-size: 0.75rem;">Estimasi respon petugas Command Center: 24-48 Jam.</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row" id="my-reports-section">
+        <div class="col-12">
+            <div class="card border-0 shadow-soft rounded-4 overflow-hidden bg-white">
+                <div class="card-header bg-white border-0 p-4 d-flex justify-content-between align-items-center">
+                    <h4 class="fw-bold text-dark mb-0">Riwayat Laporan Saya</h4>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light text-muted small">
+                            <tr>
+                                <th class="ps-4 py-3 border-0">BUKTI FOTO</th>
+                                <th class="py-3 border-0">DETAIL KEJADIAN</th>
+                                <th class="py-3 border-0">STATUS TERKINI</th>
+                                <th class="py-3 border-0 text-center">TINDAKAN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr>
+                                <td class="ps-4 py-4" style="width: 200px;">
+                                    <div id="miniCarousel{{ report.id }}" class="carousel slide shadow-sm rounded-3 overflow-hidden" style="width: 160px; height: 100px; background: #f1f1f1;">
+                                        <div class="carousel-inner h-100">
+                                            <div class="carousel-item active h-100">
+                                                <img src="{{ url_for('static', filename='uploads/reports/' + (report.foto_awal or 'default.jpg')) }}" class="d-block w-100 h-100 object-fit-cover">
+                                            </div>
+                                            {% if report.foto_2 %}
+                                            <div class="carousel-item h-100">
+                                                <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_2) }}" class="d-block w-100 h-100 object-fit-cover">
+                                            </div>
+                                            {% endif %}
+                                            {% if report.foto_3 %}
+                                            <div class="carousel-item h-100">
+                                                <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_3) }}" class="d-block w-100 h-100 object-fit-cover">
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% if report.foto_2 or report.foto_3 %}
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#miniCarousel{{ report.id }}" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon" aria-hidden="true" style="width: 12px;"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#miniCarousel{{ report.id }}" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon" aria-hidden="true" style="width: 12px;"></span>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <h6 class="fw-bold mb-1 text-dark">{{ report.judul }}</h6>
+                                    <div class="d-flex align-items-center gap-2 small text-muted">
+                                        <span class="badge bg-light text-primary fw-medium"><i class="bi bi-tag-fill me-1"></i> {{ report.kategori or 'Umum' }}</span>
+                                        <span>•</span>
+                                        <span><i class="bi bi-calendar3 me-1"></i> {{ report.created_at.strftime('%d %b %Y') }}</span>
+                                    </div>
+                                </td>
+                                <td class="py-4">
+                                    <div class="d-flex flex-column gap-1">
+                                        {% set badge_class = 'danger' if report.status_warna == 'merah' else ('success' if report.status_warna == 'hijau' else ('primary' if report.status_warna == 'biru' else 'warning')) %}
+                                        {% set status_text = 'DARURAT' if report.status_warna == 'merah' else ('SELESAI' if report.status_warna == 'hijau' else ('DIPROSES' if report.status_warna == 'biru' else 'MENUNGGU')) %}
+
+                                        <span class="badge rounded-pill bg-{{ badge_class }} shadow-sm text-uppercase px-3 py-2" style="font-size: 0.65rem; width: fit-content; letter-spacing: 0.5px;">
+                                            {{ status_text }}
+                                        </span>
+                                        {% if report.komentar_admin %}
+                                        <small class="text-muted" style="font-size: 0.7rem;"><i class="bi bi-chat-dots-fill me-1"></i> Ada tanggapan admin</small>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="py-4 text-center">
+                                    <div class="btn-group shadow-sm rounded-pill overflow-hidden border">
+                                        <a href="{{ url_for('main.view_report', report_id=report.id) }}" class="btn btn-white btn-sm px-3 border-end" title="Lihat Detail">
+                                            <i class="bi bi-eye-fill text-primary"></i>
+                                        </a>
+                                        <button class="btn btn-white btn-sm px-3" onclick="shareReportDashboard({{ report.id }})" title="Salin Link">
+                                            <i class="bi bi-share-fill text-muted"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if not reports %}
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-light opacity-50"></i>
+                    <p class="text-muted mt-3">Belum ada laporan yang Anda kirimkan.</p>
+                    <a href="{{ url_for('main.create_report') }}" class="btn btn-sm btn-outline-primary rounded-pill">Mulai Melapor Sekarang</a>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -108,94 +204,61 @@
 
     :root {
         --primary-blue: #0d6efd;
-        --soft-bg: #f8fafc;
+        --soft-bg: #f4f7fa;
         --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         --primary-shadow: 0 4px 15px rgba(13, 110, 253, 0.25);
     }
 
-    body {
-        background-color: var(--soft-bg);
-        font-family: 'Plus Jakarta Sans', sans-serif;
-    }
+    body { background-color: var(--soft-bg); font-family: 'Plus Jakarta Sans', sans-serif; }
 
     /* Bento Card Styling */
-    .bento-card {
-        border: 1px solid rgba(0,0,0,0.05);
-        border-radius: 20px;
-        transition: all 0.3s ease;
-    }
-    .bento-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08) !important;
-    }
+    .bento-card { border: 1px solid rgba(0,0,0,0.03); border-radius: 20px; transition: all 0.3s ease; }
+    .bento-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0, 0, 0, 0.07) !important; }
 
     .shadow-soft { box-shadow: var(--card-shadow); }
 
     /* Icon Boxes */
-    .icon-box {
-        width: 42px; height: 42px;
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 1.2rem;
-    }
+    .icon-box { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; }
     .bg-light-primary { background-color: rgba(13, 110, 253, 0.1); }
     .bg-light-warning { background-color: rgba(255, 193, 7, 0.1); }
     .bg-light-success { background-color: rgba(25, 135, 84, 0.1); }
-
     .bg-soft-primary { background-color: rgba(13, 110, 253, 0.05); }
     .bg-soft-warning { background-color: rgba(255, 193, 7, 0.05); }
     .bg-soft-success { background-color: rgba(25, 135, 84, 0.05); }
 
-    /* Impact Card (Professional Gradient) */
-    .impact-card {
-        background: linear-gradient(135deg, #0d6efd 0%, #0046b5 100%);
-        border-radius: 24px !important;
-    }
-    .bg-glass-white { background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(4px); }
+    /* Impact Card */
+    .impact-card { background: linear-gradient(135deg, #0d6efd 0%, #0046b5 100%); border-radius: 24px !important; }
+    .bg-glass-white { background-color: rgba(255, 255, 255, 0.15); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.1); }
+    .glass-shape-1 { position: absolute; width: 250px; height: 250px; background: rgba(255, 255, 255, 0.05); border-radius: 50%; top: -100px; right: -50px; }
+    .glass-shape-2 { position: absolute; width: 150px; height: 150px; background: rgba(255, 255, 255, 0.08); border-radius: 50%; bottom: -50px; left: 10%; }
 
-    .glass-shape-1 {
-        position: absolute; width: 250px; height: 250px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 50%; top: -100px; right: -50px;
-    }
-    .glass-shape-2 {
-        position: absolute; width: 150px; height: 150px;
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 50%; bottom: -50px; left: 10%;
-    }
+    /* Table Scrollbar */
+    .table-responsive::-webkit-scrollbar { height: 6px; }
+    .table-responsive::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
 
-    /* Buttons */
-    .btn-action {
-        border-radius: 12px;
-        font-weight: 600;
-        transition: all 0.2s ease;
-    }
+    /* Buttons & Actions */
+    .btn-action { border-radius: 14px; font-weight: 700; transition: all 0.3s ease; }
     .shadow-primary { box-shadow: var(--primary-shadow); }
-    .btn-primary:hover { transform: scale(1.02); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(13, 110, 253, 0.4); }
 
-    /* Status Dot */
-    .status-dot-active {
-        width: 8px; height: 8px;
-        background-color: #22c55e;
-        border-radius: 50%;
-        box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
-    }
+    .status-dot-active { width: 8px; height: 8px; background-color: #22c55e; border-radius: 50%; position: relative; }
+    .status-dot-active::after { content: ''; width: 100%; height: 100%; background-color: #22c55e; border-radius: 50%; position: absolute; animation: pulse 2s infinite; }
 
-    /* Animation */
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-dashboard { animation: fadeInUp 0.6s ease-out; }
+    @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(3); opacity: 0; } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-dashboard { animation: fadeInUp 0.5s ease-out; }
 
-    @media (max-width: 768px) {
-        .display-1 { font-size: 4rem; }
-    }
+    .btn-white { background: #fff; border: none; }
+    .btn-white:hover { background: #f8f9fa; }
+    .object-fit-cover { object-fit: cover; }
+
+    @media (max-width: 768px) { .display-1 { font-size: 3.5rem; } }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script>
+    // Live Clock Function
     function updateLiveClock() {
         const now = new Date();
         const clockStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -204,5 +267,17 @@
     }
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
+
+    // Share Link Function
+    function shareReportDashboard(id) {
+        const url = `${window.location.origin}/report/${id}`;
+        if (navigator.share) {
+            navigator.share({ title: 'Laporan Fasilitas Jombang', url: url });
+        } else {
+            navigator.clipboard.writeText(url).then(() => {
+                alert('Link detail laporan berhasil disalin ke clipboard!');
+            });
+        }
+    }
 </script>
 {% endblock %}

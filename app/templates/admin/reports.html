@@ -33,7 +33,7 @@
                     <label class="form-label small fw-bold text-muted text-uppercase">Kategori</label>
                     <div class="dropdown">
                         <button class="btn btn-white w-100 d-flex justify-content-between align-items-center border shadow-sm py-2 px-3 dropdown-toggle rounded-3 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <span class="text-truncate">
+                            <span class="text-truncate" id="selected-kategori-text">
                                 {% if request.args.get('kategori') and request.args.get('kategori') != 'Semua Kategori' %}
                                     {{ request.args.get('kategori') }}
                                 {% else %}
@@ -43,7 +43,7 @@
                         </button>
                         <ul class="dropdown-menu w-100 shadow-lg border-0 mt-2 p-2" style="border-radius: 12px; max-height: 400px; overflow-y: auto;">
                             <li>
-                                <a class="dropdown-item rounded-3 py-2" href="{{ url_for('admin.reports', status=request.args.get('status'), search=request.args.get('search')) }}">
+                                <a class="dropdown-item rounded-3 py-2" href="#" onclick="setKategori('Semua Kategori')">
                                     Semua Kategori
                                 </a>
                             </li>
@@ -52,7 +52,7 @@
                             {% for cat in categories %}
                             <li>
                                 <a class="dropdown-item rounded-3 py-2 d-flex justify-content-between align-items-center"
-                                   href="{{ url_for('admin.reports', kategori=cat.name, status=request.args.get('status'), search=request.args.get('search')) }}">
+                                   href="#" onclick="setKategori('{{ cat.name }}')">
                                     {{ cat.name }}
                                 </a>
                             </li>
@@ -65,7 +65,7 @@
                                 </button>
                             </li>
                         </ul>
-                        <input type="hidden" name="kategori" value="{{ request.args.get('kategori', 'Semua Kategori') }}">
+                        <input type="hidden" name="kategori" id="kategori-input" value="{{ request.args.get('kategori', 'Semua Kategori') }}">
                     </div>
                 </div>
 
@@ -187,6 +187,9 @@
     </div>
 
     {% if pagination and pagination.pages > 1 %}
+    {% set query_args = request.args.to_dict() %}
+    {% set _ = query_args.pop('page', None) %}
+
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 gap-3">
         <div class="text-muted small">
             Menampilkan <b>{{ (pagination.page - 1) * pagination.per_page + 1 }} - {{ (pagination.page - 1) * pagination.per_page + reports|length }}</b> dari <b>{{ pagination.total }}</b> laporan
@@ -194,22 +197,24 @@
         <nav aria-label="Page navigation">
             <ul class="pagination pagination-sm mb-0 shadow-sm rounded-pill overflow-hidden">
                 <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
-                    <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=pagination.prev_num, **request.args) if pagination.has_prev else '#' }}">
-                        <i class="bi bi-chevron-left me-1"></i> Sebelumnya
+                    <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=pagination.prev_num, **query_args) if pagination.has_prev else '#' }}">
+                        <i class="bi bi-chevron-left"></i>
                     </a>
                 </li>
+
                 {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
                     {% if page_num %}
                         <li class="page-item {{ 'active' if page_num == pagination.page }}">
-                            <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=page_num, **request.args) }}">{{ page_num }}</a>
+                            <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=page_num, **query_args) }}">{{ page_num }}</a>
                         </li>
                     {% else %}
                         <li class="page-item disabled"><span class="page-link py-2 px-3">...</span></li>
                     {% endif %}
                 {% endfor %}
+
                 <li class="page-item {{ 'disabled' if not pagination.has_next }}">
-                    <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=pagination.next_num, **request.args) if pagination.has_next else '#' }}">
-                        Selanjutnya <i class="bi bi-chevron-right ms-1"></i>
+                    <a class="page-link py-2 px-3" href="{{ url_for('admin.reports', page=pagination.next_num, **query_args) if pagination.has_next else '#' }}">
+                        <i class="bi bi-chevron-right"></i>
                     </a>
                 </li>
             </ul>
@@ -231,7 +236,7 @@
                         <label class="form-label small fw-bold text-muted text-uppercase">Nama Kategori</label>
                         <input type="text" name="nama" class="form-control py-2 px-3 border-light-subtle rounded-3"
                                placeholder="Contoh: Lampu Jalan Padam" required>
-                        <div class="form-text small text-muted mt-2">Kategori ini akan langsung muncul di sistem filter dan master data.</div>
+                        <div class="form-text small text-muted mt-2">Kategori ini akan langsung muncul di sistem filter.</div>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pb-4 px-4">
@@ -248,41 +253,31 @@
     .btn-white { background: white; color: #555; }
     .bg-danger-soft { background-color: rgba(239, 68, 68, 0.1); }
     .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); }
-
-    /* Sync Badge Warna Status */
     .bg-merah { background-color: #ef4444 !important; color: white !important; }
     .bg-kuning { background-color: #f59e0b !important; color: white !important; }
     .bg-biru { background-color: #3b82f6 !important; color: white !important; }
     .bg-abu { background-color: #94a3b8 !important; color: white !important; }
-
     .badge-urgency { padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px; }
     .status-pill { font-size: 0.7rem; font-weight: bold; min-width: 90px; letter-spacing: 0.5px; border: none; }
-
     .btn-action { background: #fff; border: 1px solid #f1f5f9; border-radius: 8px; padding: 6px 10px; transition: all 0.2s; }
     .btn-action:hover { background: #f8fafc; transform: translateY(-2px); border-color: #cbd5e1; }
-
     .blink-soft { animation: blinker 2.5s linear infinite; }
     @keyframes blinker { 50% { opacity: 0.4; } }
-
     @media print {
-        .btn, .pagination, form, .avatar-circle, .dropdown { display: none !important; }
+        .btn, .pagination, form, .avatar-circle, .dropdown, .btn-action { display: none !important; }
         .card { border: 1px solid #ddd !important; box-shadow: none !important; }
     }
 </style>
 
 <script>
-// Logic Dropdown Kategori agar terpilih
-document.querySelectorAll('.dropdown-item').forEach(item => {
-    item.addEventListener('click', function() {
-        const selectedValue = this.innerText.trim();
-        if(selectedValue !== "Tambah Kategori Baru") {
-            document.querySelector('input[name="kategori"]').value = selectedValue;
-        }
-    });
-});
+// Logic Helper Kategori
+function setKategori(val) {
+    document.getElementById('kategori-input').value = val;
+    document.getElementById('selected-kategori-text').innerText = val;
+}
 
 function archiveReport(id, action) {
-    const msg = action === 'archive' ? 'Pindahkan laporan ke gudang arsip?' : 'Pulihkan laporan ke log utama?';
+    const msg = action === 'archive' ? 'Pindahkan ke gudang arsip?' : 'Pulihkan laporan?';
     if(confirm(msg)) {
         fetch(`/admin/report/${id}/archive/${action}`, {
             method: 'POST',
@@ -295,7 +290,7 @@ function archiveReport(id, action) {
 }
 
 function processReport(id, action) {
-    const msg = action === 'approve' ? 'Setujui laporan ini untuk diproses?' : 'Tandai laporan ini sebagai HOAKS?';
+    const msg = action === 'approve' ? 'Setujui laporan ini?' : 'Tandai sebagai HOAKS?';
     if(confirm(msg)) {
         fetch(`/admin/report/${id}/${action}`, {
             method: 'POST',
@@ -307,7 +302,7 @@ function processReport(id, action) {
 }
 
 function deleteReport(id) {
-    if(confirm('⚠️ PERINGATAN: Laporan akan dihapus permanen! Lanjutkan?')) {
+    if(confirm('⚠️ PERINGATAN: Laporan akan dihapus permanen!')) {
         fetch(`/admin/report/${id}/delete`, {
             method: 'POST',
             headers: { 'X-Requested-With': 'XMLHttpRequest' }

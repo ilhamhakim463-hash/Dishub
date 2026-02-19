@@ -68,7 +68,6 @@ def create_app(config_name='development'):
     @main_bp.route('/')
     def index():
         try:
-            # Perbaikan Statistik: Menghitung laporan yang sudah disetujui saja
             stats = {
                 'total_reports': Report.query.filter_by(is_approved=True).count(),
                 'total_users': User.query.filter_by(role='user').count(),
@@ -82,32 +81,24 @@ def create_app(config_name='development'):
             stats = {'total_reports': 0, 'total_users': 0, 'selesai_reports': 0}
         return render_template('public/landing.html', stats=stats)
 
-    # --- ENDPOINT API UNTUK PETA (TELITI & AMAN) ---
     @main_bp.route('/api/reports-map-data')
     def reports_map_data():
-        """Mengirim data JSON koordinat untuk ditampilkan sebagai pin di peta."""
-        # Menampilkan semua laporan yang disetujui
         reports = Report.query.filter_by(is_approved=True).all()
         data = []
         for r in reports:
             try:
-                # Cek apakah koordinat tersedia
                 if r.latitude and r.longitude:
-                    # Logika pemetaan status_warna ke level urgensi Leaflet
-                    # merah -> 1 (Darurat), kuning -> 2 (Sedang), lainnya -> 3 (Biasa)
                     urg_map = {'merah': '1', 'kuning': '2'}
                     urgency_level = urg_map.get(r.status_warna, '3')
-
                     data.append({
                         'id': r.id,
                         'judul': r.judul,
-                        'latitude': float(r.latitude), # Konversi String ke Float agar terbaca Peta
-                        'longitude': float(r.longitude), # Konversi String ke Float agar terbaca Peta
+                        'latitude': float(r.latitude),
+                        'longitude': float(r.longitude),
                         'urgency': urgency_level,
                         'kategori': r.kategori or "Umum"
                     })
             except (ValueError, TypeError):
-                # Abaikan jika ada data koordinat yang korup/bukan angka
                 continue
         return jsonify(data)
 
@@ -119,35 +110,18 @@ def create_app(config_name='development'):
     @main_bp.route('/report/<int:report_id>')
     def view_report(report_id):
         report = Report.query.get_or_404(report_id)
-        if not hasattr(report, 'views_count') or report.views_count is None:
-            report.views_count = 0
-        report.views_count += 1
+        report.views_count = (report.views_count or 0) + 1
         db.session.commit()
-
-        if not report.is_approved and not (
-                current_user.is_authenticated and (current_user.id == report.user_id or current_user.role == 'admin')):
-            flash('Laporan ini sedang dalam tahap moderasi Admin.', 'info')
-            return redirect(url_for('main.feed'))
 
         comments = Interaction.query.filter_by(report_id=report_id, tipe='comment').order_by(
             Interaction.created_at.desc()).all()
         return render_template('public/view_report.html', report=report, comments=comments)
 
-    @main_bp.route('/report/<int:report_id>/comment', methods=['POST'])
+    # ALIAS UNTUK MENGHINDARI BUILDERROR 'main.create_report'
+    @main_bp.route('/lapor-baru')
     @login_required
-    def add_comment(report_id):
-        content = request.form.get('konten') or request.form.get('comment')
-        if content:
-            new_comment = Interaction(user_id=current_user.id, report_id=report_id, konten=content, tipe='comment',
-                                      created_at=datetime.utcnow())
-            db.session.add(new_comment)
-            db.session.commit()
-            flash('Komentar berhasil ditambahkan!', 'success')
-        return redirect(url_for('main.view_report', report_id=report_id))
-
-    @main_bp.route('/lapor-baru', methods=['GET', 'POST'])
-    @login_required
-    def add_report():
+    def create_report():
+        """Fungsi ini menangani panggilan url_for('main.create_report')"""
         return redirect(url_for('user.create_report'))
 
     app.register_blueprint(main_bp)
@@ -162,17 +136,11 @@ def create_app(config_name='development'):
         stats = {
             'total': Report.query.filter_by(user_id=current_user.id).count(),
             'pending': Report.query.filter_by(user_id=current_user.id, is_approved=False).count(),
-            'poin': current_user.poin_warga,
+            'poin': current_user.poin_warga or 0,
             'selesai': Report.query.filter(Report.user_id == current_user.id,
                                            Report.status_warna.in_(['biru', 'hijau'])).count()
         }
         return render_template('user/dashboard.html', stats=stats)
-
-    @user_bp.route('/my-reports')
-    @login_required
-    def my_reports():
-        user_reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.created_at.desc()).all()
-        return render_template('user/my_reports.html', reports=user_reports)
 
     @user_bp.route('/lapor', methods=['GET', 'POST'])
     @login_required
@@ -195,7 +163,6 @@ def create_app(config_name='development'):
                     judul=request.form.get('judul'),
                     deskripsi=request.form.get('deskripsi'),
                     kategori=request.form.get('kategori'),
-                    alamat_manual=request.form.get('alamat_manual'),
                     latitude=request.form.get('latitude'),
                     longitude=request.form.get('longitude'),
                     status_warna='merah',
@@ -206,7 +173,7 @@ def create_app(config_name='development'):
                 db.session.add(new_report)
                 db.session.commit()
                 flash('Laporan terkirim! Menunggu verifikasi Admin.', 'success')
-                return redirect(url_for('user.my_reports'))
+                return redirect(url_for('user.dashboard'))
             except Exception as e:
                 db.session.rollback()
                 flash(f'Gagal: {str(e)}', 'danger')
@@ -227,18 +194,6 @@ def create_app(config_name='development'):
             db.session.commit()
             flash('Profil diperbarui!', 'success')
         return render_template('user/profile.html')
-
-    @user_bp.route('/change-password', methods=['POST'])
-    @login_required
-    def change_password():
-        new_pw, confirm_pw = request.form.get('new_password'), request.form.get('confirm_password')
-        if new_pw and new_pw == confirm_pw:
-            current_user.set_password(new_pw)
-            db.session.commit()
-            flash('Password diperbarui!', 'success')
-        else:
-            flash('Password tidak cocok!', 'danger')
-        return redirect(url_for('user.profile'))
 
     @user_bp.route('/logout')
     @login_required

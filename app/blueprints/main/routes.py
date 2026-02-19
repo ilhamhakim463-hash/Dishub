@@ -10,11 +10,17 @@ from werkzeug.utils import secure_filename
 main = Blueprint('main', __name__)
 
 
-# --- FUNGSI HELPER SAVE PHOTO ---
+# --- FUNGSI HELPER SAVE PHOTO (SINKRON DENGAN SLIDER) ---
 def save_report_photo(file):
+    """Fungsi pembantu untuk menyimpan foto dengan nama unik"""
     if file and file.filename != '':
         filename = secure_filename(f"{datetime.now().strftime('%Y%m%d%H%M%S')}_{file.filename}")
-        upload_path = os.path.join('app/static/uploads/reports', filename)
+        # Menggunakan path relatif terhadap root aplikasi agar konsisten
+        upload_path = os.path.join('app', 'static', 'uploads', 'reports', filename)
+
+        # Pastikan direktori tersedia
+        os.makedirs(os.path.dirname(upload_path), exist_ok=True)
+
         file.save(upload_path)
         return filename
     return None
@@ -33,7 +39,7 @@ def index():
             'selesai': Report.query.filter_by(status_warna='hijau').count()
         }
 
-        # Menarik laporan untuk Pin Peta Landing (Lengkap agar tidak undefined)
+        # Menarik laporan untuk Pin Peta Landing (Lengkap agar tidak undefined di Popup)
         reports_for_map = Report.query.filter(
             Report.latitude.isnot(None),
             Report.longitude.isnot(None),
@@ -57,6 +63,7 @@ def index():
 @main.route('/report/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
+    """Endpoint untuk membuat laporan baru (NAMA: create_report agar tidak BuildError)"""
     if request.method == 'POST':
         # Mengambil file dari form (foto_awal wajib, foto_2 & 3 opsional)
         f1 = request.files.get('foto_awal')
@@ -75,16 +82,21 @@ def create_report():
                 longitude=request.form.get('longitude'),
                 kategori=request.form.get('kategori'),
                 user_id=current_user.id,
-                status_warna='biru',  # Default awal
+                status_warna='biru',  # Default awal: Menunggu/Proses
                 foto_awal=save_report_photo(f1),
                 foto_2=save_report_photo(f2),
                 foto_3=save_report_photo(f3),
                 created_at=datetime.now()
             )
+
+            # Tambahan otomatis poin pelapor (Memberikan reward kontribusi)
+            current_user.poin_warga = (current_user.poin_warga or 0) + 5
+
             db.session.add(new_report)
             db.session.commit()
-            flash('Laporan berhasil dikirim dan sedang diverifikasi.', 'success')
+            flash('Laporan berhasil dikirim dan sedang diverifikasi. Anda mendapat +5 poin!', 'success')
             return redirect(url_for('main.dashboard'))
+
         except Exception as e:
             db.session.rollback()
             flash(f'Gagal mengirim laporan: {str(e)}', 'danger')
@@ -93,12 +105,13 @@ def create_report():
     return render_template('user/laporan.html', categories=categories)
 
 
-# --- FEED PUBLIK & LIVE MAP DATA (SINKRON DENGAN SLIDER) ---
+# --- FEED PUBLIK & LIVE MAP DATA ---
 @main.route('/feed')
 def feed():
-    reports = Report.query.filter_by(is_approved=True, is_archived=False).order_by(Report.created_at.desc()).all()
+    # Menampilkan laporan yang belum diarsip
+    reports = Report.query.filter_by(is_archived=False).order_by(Report.created_at.desc()).all()
 
-    # Data Peta Feed (Dibuat lengkap agar popup tidak undefined)
+    # Data Peta Feed (Dibuat lengkap untuk marker JS)
     map_data = [{
         'id': r.id,
         'lat': r.latitude,
@@ -112,7 +125,7 @@ def feed():
     return render_template('public/feed.html', reports=reports, map_data=map_data)
 
 
-# --- DETAIL LAPORAN ---
+# --- DETAIL LAPORAN & KOMENTAR ---
 @main.route('/report/<int:report_id>')
 def view_report(report_id):
     report = Report.query.get_or_404(report_id)
@@ -124,11 +137,13 @@ def view_report(report_id):
         existing = Interaction.query.filter_by(report_id=report_id, user_id=current_user.id, tipe='support').first()
         user_has_supported = True if existing else False
 
-    return render_template('public/view_report.html', report=report, comments=comments,
+    return render_template('public/view_report.html',
+                           report=report,
+                           comments=comments,
                            user_has_supported=user_has_supported)
 
 
-# --- FITUR DUKUNG & KOMENTAR (AJAX COMPATIBLE) ---
+# --- FITUR DUKUNG (SUPPORT) - AJAX COMPATIBLE ---
 @main.route('/report/<int:report_id>/support', methods=['POST'])
 @login_required
 def support_report(report_id):
@@ -148,6 +163,7 @@ def support_report(report_id):
     return jsonify({'status': 'error', 'message': 'Sudah didukung'}), 400
 
 
+# --- FITUR TAMBAH KOMENTAR ---
 @main.route('/report/<int:report_id>/comment', methods=['POST'])
 @login_required
 def add_comment(report_id):
@@ -156,7 +172,10 @@ def add_comment(report_id):
         return jsonify({'status': 'error', 'message': 'Komentar kosong'}), 400
 
     try:
-        new_comment = Interaction(report_id=report_id, user_id=current_user.id, tipe='comment', konten=konten.strip())
+        new_comment = Interaction(report_id=report_id,
+                                  user_id=current_user.id,
+                                  tipe='comment',
+                                  konten=konten.strip())
         db.session.add(new_comment)
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'Terkirim'}), 200
@@ -165,10 +184,11 @@ def add_comment(report_id):
         return jsonify({'status': 'error'}), 500
 
 
-# --- DASHBOARD MULTI-ROLE ---
+# --- DASHBOARD MULTI-ROLE (SINKRONISASI BENTO CARD) ---
 @main.route('/dashboard')
 @login_required
 def dashboard():
+    # Role Admin: Melihat statistik Global
     if current_user.role == 'admin':
         stats = {
             'total_reports': Report.query.count(),
@@ -180,6 +200,7 @@ def dashboard():
         recent_reports = Report.query.order_by(Report.created_at.desc()).limit(10).all()
         return render_template('admin/dashboard.html', stats=stats, recent_reports=recent_reports, now=datetime.now())
 
+    # Role Warga/Mahasantri: Melihat statistik Personal
     user_stats = {
         'total': Report.query.filter_by(user_id=current_user.id).count(),
         'proses': Report.query.filter_by(user_id=current_user.id).filter(
@@ -191,7 +212,7 @@ def dashboard():
     return render_template('user/dashboard.html', stats=user_stats, reports=my_reports)
 
 
-# --- API DATA PETA (SINKRONISASI REAL-TIME) ---
+# --- API DATA PETA (SINKRONISASI REAL-TIME UNTUK JS) ---
 @main.route('/api/map-markers')
 def map_markers():
     reports = Report.query.filter(Report.latitude.isnot(None), Report.is_archived == False).all()
