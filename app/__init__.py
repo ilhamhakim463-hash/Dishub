@@ -6,6 +6,7 @@ from flask_migrate import Migrate
 from flask_socketio import SocketIO, emit
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 from datetime import datetime
 from config import config
 
@@ -55,14 +56,7 @@ def create_app(config_name='development'):
             reply = "Maaf, LaporBot belum mengerti. Silakan tanya 'cara lapor'."
         emit('bot_response', {'message': reply})
 
-    # --- 1. AUTH BLUEPRINT ---
-    try:
-        from app.blueprints.auth.routes import auth as auth_blueprint
-        app.register_blueprint(auth_blueprint, url_prefix='/auth')
-    except Exception as e:
-        app.logger.error(f"Auth Blueprint Error: {e}")
-
-    # --- 2. MAIN BLUEPRINT (Public & Feed) ---
+    # --- 1. MAIN BLUEPRINT (Public & Feed) ---
     main_bp = Blueprint('main', __name__)
 
     @main_bp.route('/')
@@ -110,37 +104,57 @@ def create_app(config_name='development'):
     @main_bp.route('/report/<int:report_id>')
     def view_report(report_id):
         report = Report.query.get_or_404(report_id)
-        report.views_count = (report.views_count or 0) + 1
-        db.session.commit()
-
+        if hasattr(report, 'views_count'):
+            report.views_count = (report.views_count or 0) + 1
+            db.session.commit()
         comments = Interaction.query.filter_by(report_id=report_id, tipe='comment').order_by(
             Interaction.created_at.desc()).all()
         return render_template('public/view_report.html', report=report, comments=comments)
 
-    # ALIAS UNTUK MENGHINDARI BUILDERROR 'main.create_report'
+    @main_bp.route('/report/<int:report_id>/comment', methods=['POST'])
+    @login_required
+    def add_comment(report_id):
+        content = request.form.get('konten') or request.form.get('comment')
+        if content:
+            new_comment = Interaction(
+                user_id=current_user.id,
+                report_id=report_id,
+                konten=content,
+                tipe='comment',
+                created_at=datetime.utcnow()
+            )
+            db.session.add(new_comment)
+            db.session.commit()
+            flash('Komentar berhasil ditambahkan!', 'success')
+        return redirect(url_for('main.view_report', report_id=report_id))
+
     @main_bp.route('/lapor-baru')
     @login_required
     def create_report():
-        """Fungsi ini menangani panggilan url_for('main.create_report')"""
         return redirect(url_for('user.create_report'))
 
-    app.register_blueprint(main_bp)
+    if 'main' not in app.blueprints:
+        app.register_blueprint(main_bp)
 
-    # --- 3. USER BLUEPRINT (Dashboard & Actions) ---
+    # --- 2. USER BLUEPRINT (Dashboard & Actions) ---
     user_bp = Blueprint('user', __name__)
 
     @user_bp.route('/dashboard')
     @login_required
     def dashboard():
         if current_user.role == 'admin': return redirect(url_for('admin.dashboard'))
+
+        # MENGAMBIL DATA LAPORAN USER LOGIN
+        user_reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.created_at.desc()).all()
+
         stats = {
-            'total': Report.query.filter_by(user_id=current_user.id).count(),
+            'total': len(user_reports),
             'pending': Report.query.filter_by(user_id=current_user.id, is_approved=False).count(),
             'poin': current_user.poin_warga or 0,
             'selesai': Report.query.filter(Report.user_id == current_user.id,
                                            Report.status_warna.in_(['biru', 'hijau'])).count()
         }
-        return render_template('user/dashboard.html', stats=stats)
+        return render_template('user/dashboard.html', stats=stats, reports=user_reports)
 
     @user_bp.route('/lapor', methods=['GET', 'POST'])
     @login_required
@@ -159,15 +173,10 @@ def create_app(config_name='development'):
                     return None
 
                 new_report = Report(
-                    user_id=current_user.id,
-                    judul=request.form.get('judul'),
-                    deskripsi=request.form.get('deskripsi'),
-                    kategori=request.form.get('kategori'),
-                    latitude=request.form.get('latitude'),
+                    user_id=current_user.id, judul=request.form.get('judul'), deskripsi=request.form.get('deskripsi'),
+                    kategori=request.form.get('kategori'), latitude=request.form.get('latitude'),
                     longitude=request.form.get('longitude'),
-                    status_warna='merah',
-                    is_approved=False,
-                    foto_awal=handle_upload('foto_awal'),
+                    status_warna='kuning', is_approved=False, foto_awal=handle_upload('foto_awal'),
                     created_at=datetime.utcnow()
                 )
                 db.session.add(new_report)
@@ -190,10 +199,24 @@ def create_app(config_name='development'):
                 if not os.path.exists(path): os.makedirs(path)
                 file.save(os.path.join(path, fname))
                 current_user.foto_profil = fname
-            current_user.nama, current_user.email = request.form.get('nama'), request.form.get('email')
+            current_user.nama = request.form.get('nama')
+            current_user.email = request.form.get('email')
             db.session.commit()
             flash('Profil diperbarui!', 'success')
         return render_template('user/profile.html')
+
+    @user_bp.route('/change-password', methods=['POST'])
+    @login_required
+    def change_password():
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        if new_password and new_password == confirm_password:
+            current_user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            flash('Password berhasil diubah!', 'success')
+        else:
+            flash('Password baru dan konfirmasi tidak cocok!', 'danger')
+        return redirect(url_for('user.profile'))
 
     @user_bp.route('/logout')
     @login_required
@@ -202,13 +225,19 @@ def create_app(config_name='development'):
         flash('Anda telah keluar.', 'success')
         return redirect(url_for('auth.login'))
 
-    app.register_blueprint(user_bp, url_prefix='/user')
+    if 'user' not in app.blueprints:
+        app.register_blueprint(user_bp, url_prefix='/user')
 
-    # --- 4. ADMIN BLUEPRINT ---
+    # --- 3. EXTERNAL BLUEPRINTS (Auth & Admin) ---
     try:
+        from app.blueprints.auth.routes import auth as auth_blueprint
+        if 'auth' not in app.blueprints:
+            app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
         from app.blueprints.admin.routes import admin as admin_blueprint
-        app.register_blueprint(admin_blueprint, url_prefix='/admin')
+        if 'admin' not in app.blueprints:
+            app.register_blueprint(admin_blueprint, url_prefix='/admin')
     except Exception as e:
-        app.logger.error(f"Admin Blueprint Error: {e}")
+        app.logger.error(f"Blueprint Registration Error: {e}")
 
     return app

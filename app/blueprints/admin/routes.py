@@ -132,21 +132,31 @@ def reports_map_data():
 # --- LOG LAPORAN (MANAGEMENT TABLE) ---
 @admin.route('/reports')
 def reports():
-    """Manajemen daftar laporan dengan filter status dan pencarian global"""
+    """Manajemen daftar laporan dengan filter status, kategori, dan pencarian global"""
     status_filter = request.args.get('status', 'Semua').lower()
+    kategori_filter = request.args.get('kategori') # MENANGKAP FILTER KATEGORI SIDEBAR
     search = request.args.get('search', '')
     query = Report.query
 
+    # Logika Filter Kategori (image_6fbd39.png)
+    if kategori_filter:
+        # Membersihkan tanda '+' dari URL jika ada
+        kategori_clean = kategori_filter.replace('+', ' ')
+        query = query.filter(Report.kategori == kategori_clean)
+
+    # Logika Filter Status
     if status_filter != 'semua':
         color_map = {'darurat': 'merah', 'proses': 'biru', 'selesai': 'hijau', 'sedang': 'kuning'}
         target_color = color_map.get(status_filter)
         if target_color:
             query = query.filter_by(status_warna=target_color)
 
+    # Logika Pencarian
     if search:
         query = query.filter(or_(
             Report.judul.ilike(f'%{search}%'),
-            Report.id.ilike(f'%{search}%')
+            Report.id.ilike(f'%{search}%'),
+            Report.deskripsi.ilike(f'%{search}%')
         ))
 
     reports_list = query.order_by(Report.created_at.desc()).all()

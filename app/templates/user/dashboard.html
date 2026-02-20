@@ -83,7 +83,7 @@
             <div class="card border-0 bg-white h-100 p-4 shadow-soft rounded-4">
                 <h6 class="fw-bold text-muted mb-4 text-uppercase" style="letter-spacing: 1px;">Aksi Cepat</h6>
                 <div class="d-grid gap-3">
-                    <a href="{{ url_for('main.create_report') }}" class="btn btn-primary btn-action shadow-primary py-3 text-white">
+                    <a href="{{ url_for('user.create_report') }}" class="btn btn-primary btn-action shadow-primary py-3 text-white">
                         <i class="bi bi-megaphone-fill me-2"></i> Buat Laporan Baru
                     </a>
                     <button class="btn btn-outline-secondary btn-action py-3 text-dark" onclick="document.getElementById('my-reports-section').scrollIntoView({behavior: 'smooth'})">
@@ -191,7 +191,7 @@
                 <div class="text-center py-5">
                     <i class="bi bi-inbox display-1 text-light opacity-50"></i>
                     <p class="text-muted mt-3">Belum ada laporan yang Anda kirimkan.</p>
-                    <a href="{{ url_for('main.create_report') }}" class="btn btn-sm btn-outline-primary rounded-pill">Mulai Melapor Sekarang</a>
+                    <a href="{{ url_for('user.create_report') }}" class="btn btn-sm btn-outline-primary rounded-pill">Mulai Melapor Sekarang</a>
                 </div>
                 {% endif %}
             </div>
@@ -258,7 +258,6 @@
 
 {% block scripts %}
 <script>
-    // Live Clock Function
     function updateLiveClock() {
         const now = new Date();
         const clockStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -268,7 +267,6 @@
     setInterval(updateLiveClock, 1000);
     updateLiveClock();
 
-    // Share Link Function
     function shareReportDashboard(id) {
         const url = `${window.location.origin}/report/${id}`;
         if (navigator.share) {
