@@ -1,12 +1,15 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm sticky-top py-2">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="/">
-            <img src="/static/img/logo-jombang.png" alt="Logo Jombang" height="45" class="me-2">
+            <img src="/static/img/img1.png" alt="Logo Jombang" style="height: 45px; width: auto; max-width: 100%;" class="me-2">
+
             <div class="vr mx-2 text-white opacity-50 d-none d-sm-block" style="height: 30px;"></div>
-            <img src="/static/img/logo-diskominfo.png" alt="Logo Diskominfo" height="35" class="me-2 d-none d-sm-block">
+
+            <img src="/static/img/img2.png" alt="Logo Dishub" style="height: 35px; width: auto; max-width: 100%;" class="me-2 d-none d-sm-block">
+
             <div class="ms-1">
                 <span class="fw-bold d-block lh-1" style="letter-spacing: 1px;">LAPORPAK!</span>
-                <small class="opacity-75 d-block" style="font-size: 0.65rem;">KAB. JOMBANG</small>
+                <small class="opacity-75 d-block" style="font-size: 0.65rem;">DISHUB KAB. JOMBANG</small>
             </div>
         </a>
 
@@ -27,7 +30,7 @@
 
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav align-items-center">
-                <li class="nav-item"><a class="nav-link fw-medium" href="{{ url_for('main.feed') }}">Feed Publik</a></li>
+                <li class="nav-item"><a class="nav-link fw-medium text-white" href="{{ url_for('main.feed') }}">Feed Publik</a></li>
 
                 {% if current_user.is_authenticated %}
                 <li class="nav-item dropdown ms-lg-3">
@@ -48,7 +51,7 @@
                     </ul>
                 </li>
                 {% else %}
-                <li class="nav-item ms-lg-3"><a class="nav-link" href="{{ url_for('auth.login') }}">Login</a></li>
+                <li class="nav-item ms-lg-3"><a class="nav-link text-white" href="{{ url_for('auth.login') }}">Login</a></li>
                 <li class="nav-item ms-lg-2">
                     <a href="{{ url_for('auth.register') }}" class="btn btn-warning rounded-pill px-4 btn-sm fw-bold shadow-sm">DAFTAR</a>
                 </li>
@@ -65,7 +68,7 @@
             {% if latest_alert %}
                 <span class="text-warning fw-bold">[{{ latest_alert.tipe_bencana }}]</span> {{ latest_alert.pesan }} — Terpantau di wilayah {{ latest_alert.wilayah_terdampak }} pada {{ latest_alert.created_at.strftime('%H:%M') }} WIB.
             {% else %}
-                Selamat Datang di Layanan LaporPak! Diskominfo Jombang — Sampaikan keluhan infrastruktur dan keamanan wilayah Anda melalui portal resmi ini — Gunakan hak suara Anda untuk Jombang yang lebih baik.
+                Selamat Datang di Layanan LaporPak! Dishub Jombang — Laporkan kendala marka jalan, lampu PJU mati, atau parkir liar melalui portal resmi ini — Demi kenyamanan transportasi Jombang.
             {% endif %}
         </marquee>
     </div>
@@ -77,5 +80,18 @@
         0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7); }
         70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); }
         100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+    }
+
+    /* Perbaikan Vital: Memaksa gambar tetap di dalam ukuran navbar */
+    .navbar-brand img {
+        height: 45px !important; /* Mengunci tinggi agar tidak meluap */
+        width: auto !important;
+        object-fit: contain;
+        display: inline-block;
+    }
+
+    /* Khusus logo kedua agar lebih kecil sedikit */
+    .navbar-brand img[alt="Logo Dishub"] {
+        height: 35px !important;
     }
 </style>

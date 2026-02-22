@@ -35,11 +35,11 @@
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm {% if stats.darurat is defined and stats.darurat > 0 %}bg-merah blink-card{% else %}bg-dark{% endif %} text-white p-3 card-enterprise h-100">
+            <div class="card border-0 shadow-sm {% if stats.darurat_reports is defined and stats.darurat_reports > 0 %}bg-merah blink-card{% else %}bg-dark{% endif %} text-white p-3 card-enterprise h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <h6 class="text-white-50 small text-uppercase fw-bold mb-1">SLA Overdue</h6>
-                        <h2 class="fw-bold mb-0 display-6">{{ stats.darurat if stats.darurat is defined else 0 }}</h2>
+                        <h2 class="fw-bold mb-0 display-6">{{ stats.darurat_reports if stats.darurat_reports is defined else 0 }}</h2>
                     </div>
                     <div class="bg-white bg-opacity-25 rounded-3 p-2">
                         <i class="bi bi-clock-history fs-4"></i>
@@ -51,8 +51,8 @@
             <div class="card border-0 shadow-sm bg-kuning text-white p-3 card-enterprise h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <h6 class="text-white-50 small text-uppercase fw-bold mb-1">Urgency: Sedang</h6>
-                        <h2 class="fw-bold mb-0 display-6">{{ stats.sedang if stats.sedang is defined else 0 }}</h2>
+                        <h6 class="text-white-50 small text-uppercase fw-bold mb-1">Status: Kuning</h6>
+                        <h2 class="fw-bold mb-0 display-6">{{ stats.biasa_reports if stats.biasa_reports is defined else 0 }}</h2>
                     </div>
                     <div class="bg-white bg-opacity-25 rounded-3 p-2">
                         <i class="bi bi-exclamation-circle fs-4"></i>
@@ -65,7 +65,7 @@
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <h6 class="text-white-50 small text-uppercase fw-bold mb-1">Tuntas (Selesai)</h6>
-                        <h2 class="fw-bold mb-0 display-6">{{ stats.selesai if stats.selesai is defined else 0 }}</h2>
+                        <h2 class="fw-bold mb-0 display-6">{{ stats.selesai_reports if stats.selesai_reports is defined else 0 }}</h2>
                     </div>
                     <div class="bg-white bg-opacity-25 rounded-3 p-2">
                         <i class="bi bi-check-circle fs-4"></i>
@@ -114,7 +114,7 @@
                         <h6 class="fw-bold small mb-3 text-uppercase text-muted" style="letter-spacing: 1px;">Insight Ringkas</h6>
                         <ul class="list-group list-group-flush small">
                             <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent">
-                                Total Warga <span class="badge bg-soft-primary text-primary rounded-pill px-3">{{ stats.total_warga if stats.total_warga is defined else 0 }} Warga</span>
+                                Total Warga <span class="badge bg-soft-primary text-primary rounded-pill px-3">{{ stats.total_users if stats.total_users is defined else 0 }} Warga</span>
                             </li>
                             <li class="list-group-item d-flex justify-content-between align-items-center px-0 bg-transparent">
                                 Kecepatan Respon <span class="text-success fw-bold"><i class="bi bi-lightning-fill"></i> Optimal</span>
@@ -131,7 +131,7 @@
 
     <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px; overflow: hidden;">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom-0">
-            <h5 class="mb-0 fw-bold">Log Laporan Aktif</h5>
+            <h5 class="mb-0 fw-bold">Log Laporan Terbaru</h5>
             <a href="{{ url_for('admin.reports') }}" class="btn btn-sm btn-outline-primary fw-bold px-3">Kelola Semua</a>
         </div>
         <div class="card-body p-0">
@@ -175,7 +175,7 @@
                             </td>
                             <td class="text-center">
                                 <span class="badge status-badge bg-{{ report.status_warna if report.status_warna in ['merah', 'kuning', 'biru', 'hijau'] else 'abu' }} rounded-pill px-3 py-2 shadow-xs">
-                                    {{ (report.status_label or report.status_warna or 'PENDING')|upper }}
+                                    {{ (report.status_warna or 'PENDING')|upper }}
                                 </span>
                             </td>
                             <td class="text-center">
@@ -200,7 +200,7 @@
 </div>
 
 <style>
-    /* Color Palette */
+    /* CSS STYLING */
     .bg-merah { background-color: #ef4444 !important; color: white; }
     .bg-kuning { background-color: #f59e0b !important; color: white !important; }
     .bg-biru { background-color: #3b82f6 !important; color: white; }
@@ -210,126 +210,195 @@
     .bg-warning-soft { background-color: rgba(245, 158, 11, 0.1); }
     .bg-success-soft { background-color: rgba(16, 185, 129, 0.1); }
     .bg-soft-primary { background-color: rgba(59, 130, 246, 0.1); }
+
     .status-badge { min-width: 90px; font-weight: 700; font-size: 0.65rem; letter-spacing: 0.8px; }
+
     @keyframes blinker { 50% { opacity: 0.4; } }
     .blink-text { animation: blinker 1.5s linear infinite; }
     .blink-card { animation: blink-bg 2s infinite; }
     @keyframes blink-bg { 0%, 100% { background-color: #ef4444; } 50% { background-color: #991b1b; } }
+
     .card-enterprise { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 16px; }
     .card-enterprise:hover { transform: translateY(-5px); box-shadow: 0 8px 15px rgba(0,0,0,0.1) !important; }
-    .x-small { font-size: 0.7rem; }
-    .shadow-xs { box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    .marker-pin { width: 30px; height: 30px; border-radius: 50% 50% 50% 0; position: absolute; transform: rotate(-45deg); left: 50%; top: 50%; margin: -15px 0 0 -15px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-    .pin-icon { position: absolute; width: 100%; height: 100%; top: 0; left: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 1rem; transform: rotate(45deg); }
+
+    /* Custom Map Marker Style */
+    .marker-pin {
+        width: 30px; height: 30px; border-radius: 50% 50% 50% 0;
+        position: absolute; transform: rotate(-45deg); left: 50%; top: 50%;
+        margin: -15px 0 0 -15px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .pin-icon {
+        position: absolute; width: 100%; height: 100%; top: 0; left: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: white; font-size: 1rem; transform: rotate(45deg);
+    }
     .blink-pin { animation: blinker 1s linear infinite; }
-    .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; }
+
+    .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
     .leaflet-popup-content { margin: 0 !important; width: 220px !important; }
+
+    .display-6 { font-size: 1.8rem; }
+    @media (min-width: 768px) { .display-6 { font-size: 2.5rem; } }
 </style>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // --- MAP INITIALIZATION ---
-    const map = L.map('commandMap', { zoomControl: false }).setView([-7.5465, 112.2332], 12);
+    // --- 1. INITIALIZATION PETA (LIVE COMMAND MAP) ---
+    const map = L.map('commandMap', {
+        zoomControl: false,
+        scrollWheelZoom: true
+    }).setView([-7.5465, 112.2332], 12);
+
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; Dishub Jombang'
     }).addTo(map);
+
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-    // --- FETCH DATA FOR MAP (Fixed "undefined" Issues) ---
-    fetch("{{ url_for('admin.reports_map_data') }}")
-        .then(response => response.json())
-        .then(reports => {
-            reports.forEach(report => {
-                let pinColor = "94a3b8"; // Default Abu-abu
-                let isUrgent = false;
+    function loadMapMarkers() {
+        fetch("{{ url_for('admin.reports_map_data') }}")
+            .then(response => response.json())
+            .then(reports => {
+                // Hapus layer lama jika dipanggil ulang
+                if (window.markerLayer) map.removeLayer(window.markerLayer);
+                window.markerLayer = L.layerGroup().addTo(map);
 
-                // Sinkronisasi Warna Marker
-                if (report.status_warna === 'merah') { pinColor = "ef4444"; isUrgent = true; }
-                else if (report.status_warna === 'kuning') { pinColor = "f59e0b"; }
-                else if (report.status_warna === 'biru') { pinColor = "3b82f6"; }
-                else if (report.status_warna === 'hijau') { pinColor = "22c55e"; }
+                if (reports.length > 0) {
+                    let markerGroup = [];
 
-                const marker = L.marker([report.lat, report.lng], {
-                    icon: L.divIcon({
-                        html: `<div class="marker-pin shadow ${isUrgent ? 'blink-pin' : ''}" style="background-color: #${pinColor}"></div><i class="bi bi-geo-alt-fill pin-icon"></i>`,
-                        className: 'custom-div-icon',
-                        iconSize: [30, 42], iconAnchor: [15, 42], popupAnchor: [0, -40]
-                    })
-                }).addTo(map);
+                    reports.forEach(report => {
+                        let pinColor = "94a3b8";
+                        let isUrgent = false;
 
-                // Fixed URL Image & Data Safety
-                const reportPhoto = report.foto ? `/static/uploads/reports/${report.foto}` : '/static/img/default-report.jpg';
-                const urgensiLabel = report.urgensi_label ? report.urgensi_label : (report.status_warna === 'merah' ? 'DARURAT' : 'UMUM');
+                        if (report.status_warna === 'merah') { pinColor = "ef4444"; isUrgent = true; }
+                        else if (report.status_warna === 'kuning') { pinColor = "f59e0b"; }
+                        else if (report.status_warna === 'biru') { pinColor = "3b82f6"; }
+                        else if (report.status_warna === 'hijau') { pinColor = "22c55e"; }
 
-                marker.bindPopup(`
-                    <div class="card border-0" style="overflow: hidden;">
-                        <img src="${reportPhoto}" class="card-img-top" style="height: 120px; width: 100%; object-fit: cover;" onerror="this.src='/static/img/default-report.jpg'">
-                        <div class="card-body p-3">
-                            <h6 class="fw-bold mb-1 small text-dark">${report.judul || 'Laporan Tanpa Judul'}</h6>
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="badge bg-${report.status_warna || 'secondary'}" style="font-size: 9px;">${urgensiLabel}</span>
-                                <span class="text-muted" style="font-size: 9px;">${report.created_at || ''}</span>
+                        const marker = L.marker([report.lat, report.lng], {
+                            icon: L.divIcon({
+                                html: `
+                                    <div class="marker-pin shadow ${isUrgent ? 'blink-pin' : ''}" style="background-color: #${pinColor}"></div>
+                                    <i class="bi bi-geo-alt-fill pin-icon"></i>
+                                `,
+                                className: 'custom-div-icon',
+                                iconSize: [30, 42],
+                                iconAnchor: [15, 42],
+                                popupAnchor: [0, -40]
+                            })
+                        });
+
+                        // --- LOGIKA TAMPILAN FOTO POPUP ---
+                        let photoHtml = '';
+                        if (report.foto && report.foto !== null && report.foto !== "") {
+                            photoHtml = `
+                                <div style="height: 130px; width: 100%; overflow: hidden; background: #eee; border-bottom: 1px solid #eee;">
+                                    <img src="/static/uploads/${report.foto}"
+                                         style="height: 100%; width: 100%; object-fit: cover;"
+                                         onerror="this.onerror=null; this.src='https://placehold.co/400x300?text=Foto+Tidak+Ditemukan'">
+                                </div>`;
+                        } else {
+                            photoHtml = `
+                                <div style="height: 100px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #f8f9fa; border-bottom: 1px solid #eee;">
+                                    <i class="bi bi-image text-muted fs-2"></i>
+                                    <span class="text-muted small" style="font-size: 10px;">Tanpa Foto</span>
+                                </div>`;
+                        }
+
+                        marker.bindPopup(`
+                            <div class="card border-0" style="width: 220px; border-radius: 12px; overflow: hidden; box-shadow: none;">
+                                ${photoHtml}
+                                <div class="card-body p-3">
+                                    <h6 class="fw-bold mb-1 text-dark" style="font-size: 14px; line-height: 1.4;">${report.judul}</h6>
+                                    <div class="mb-3">
+                                        <span class="badge" style="background-color:#${pinColor}; font-size: 10px; padding: 4px 10px; color:white; border-radius: 50px;">
+                                            ${(report.status_warna || 'PENDING').toUpperCase()}
+                                        </span>
+                                        <div class="text-muted mt-1" style="font-size: 10px;">
+                                            <i class="bi bi-clock me-1"></i>${report.created_at}
+                                        </div>
+                                    </div>
+                                    <a href="${report.url_detail}" class="btn btn-primary btn-sm w-100 py-2 fw-bold" style="font-size: 12px; border-radius: 8px;">Buka Detail</a>
+                                </div>
                             </div>
-                            <p class="mb-2 text-muted" style="font-size: 10px;"><i class="bi bi-person me-1"></i>Pelapor: ${report.pelapor || 'Anonim'}</p>
-                            <a href="${report.url_detail || '#'}" class="btn btn-primary btn-sm w-100 py-2 fw-bold" style="font-size: 11px; border-radius: 8px;">
-                                <i class="bi bi-gear-fill me-1"></i> Kelola Laporan
-                            </a>
-                        </div>
-                    </div>
-                `);
-            });
-        })
-        .catch(err => console.error("Map Error:", err));
+                        `);
 
-    // --- CHART LOGIC ---
+                        window.markerLayer.addLayer(marker);
+                        markerGroup.push(marker);
+                    });
+
+                    // Auto-zoom ke semua marker
+                    if (markerGroup.length > 0) {
+                        const group = new L.featureGroup(markerGroup);
+                        map.fitBounds(group.getBounds(), { padding: [50, 50] });
+                    }
+                }
+            })
+            .catch(err => console.error("Gagal memuat data peta:", err));
+    }
+
+    // --- 2. DYNAMIC CHART LOGIC ---
     const ctx = document.getElementById('mainChart').getContext('2d');
     let reportChart;
+    const currentTotal = {{ stats.total_reports if stats.total_reports is defined else 0 }};
+    const now = new Date();
 
-    function initChart(labels, data) {
+    let currentMonthIdx = now.getMonth();
+    let currentYear = now.getFullYear();
+
+    let weeklyData = {{ weekly_data | tojson if weekly_data is defined else "[0,0,0,0,0,0,0]" }};
+    let monthlyData = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    monthlyData[currentMonthIdx] = currentTotal;
+
+    let yearlyData = [0, 0, 0, 0, 0];
+    if (currentYear >= 2026 && currentYear <= 2030) yearlyData[currentYear - 2026] = currentTotal;
+
+    const chartConfigs = {
+        weekly: { labels: {{ days | tojson if days is defined else "['Sen','Sel','Rab','Kam','Jum','Sab','Min']" }}, data: weeklyData },
+        monthly: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'], data: monthlyData },
+        yearly: { labels: ['2026', '2027', '2028', '2029', '2030'], data: yearlyData }
+    };
+
+    function initChart(period) {
         if (reportChart) reportChart.destroy();
         const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.3)');
         gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
 
         reportChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: chartConfigs[period].labels,
                 datasets: [{
-                    label: 'Jumlah Laporan',
-                    data: data,
+                    label: 'Laporan',
+                    data: chartConfigs[period].data,
                     borderColor: '#3b82f6',
                     backgroundColor: gradient,
-                    borderWidth: 3,
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 5,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#3b82f6'
+                    borderWidth: 3, tension: 0.4, fill: true, pointRadius: 4,
+                    pointBackgroundColor: '#fff', pointBorderColor: '#3b82f6'
                 }]
             },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f1f5f9' }, ticks: { stepSize: 1, color: '#94a3b8' } },
-                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
                 }
             }
         });
     }
 
-    initChart({{ days | tojson if days is defined else [] }}, {{ weekly_data | tojson if weekly_data is defined else [] }});
-
-    function updateChart(period, label) {
+    window.updateChart = function(period, label) {
         document.getElementById('activePeriodLabel').innerText = label;
-        fetch(`/admin/api/chart-data?period=${period}`)
-            .then(res => res.json())
-            .then(data => { initChart(data.labels, data.values); })
-            .catch(err => { console.error("Grafik Error:", err); });
-    }
+        initChart(period);
+    };
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadMapMarkers();
+        initChart('weekly');
+    });
 </script>
 {% endblock %}

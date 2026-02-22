@@ -1,251 +1,436 @@
-from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, jsonify, send_file
 from flask_login import login_required, current_user
-from app.blueprints.admin import admin
-from app.models import User, Report, EmergencyAlert, Category, Interaction
-from app import db
-from sqlalchemy import func, or_, extract
-from datetime import datetime, timedelta, time
-import os
+from functools import wraps
+from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
+import os
+import random
+import pandas as pd
+from io import BytesIO
+
+# Import untuk PDF
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+
+admin = Blueprint('admin', __name__)
 
 
-# --- HELPER: SAVE UPLOAD (SINKRON DENGAN FEEDBACK ADMIN) ---
-def save_feedback_photo(file):
-    """Fungsi pembantu untuk menyimpan foto progres/selesai dari admin"""
-    if file:
-        filename = secure_filename(f"feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}")
-        # Menggunakan current_app.root_path agar path absolut selalu benar
-        upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'reports')
+# --- DECORATOR ---
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.role != 'admin':
+            abort(403)
+        return f(*args, **kwargs)
 
-        if not os.path.exists(upload_folder):
-            os.makedirs(upload_folder)
-
-        file.save(os.path.join(upload_folder, filename))
-        return filename
-    return None
+    return decorated_function
 
 
-# --- CONTEXT PROCESSOR (Navigasi Sidebar Dashboard Admin) ---
+# --- CONTEXT PROCESSOR ---
 @admin.app_context_processor
-def inject_status_nav():
-    status_menu = [
-        {'nama': 'Darurat', 'warna': 'merah', 'icon': 'bi-exclamation-triangle-fill'},
-        {'nama': 'Proses', 'warna': 'biru', 'icon': 'bi-gear-fill'},
-        {'nama': 'Selesai', 'warna': 'hijau', 'icon': 'bi-check-circle-fill'}
-    ]
-    return dict(sidebar_status=status_menu)
+def inject_sidebar_categories():
+    from app.models import Category
+    try:
+        all_cats = Category.query.order_by(Category.name.asc()).all()
+        return dict(sidebar_categories=all_cats)
+    except Exception:
+        return dict(sidebar_categories=[])
 
 
-# --- MIDDLEWARE: PROTEKSI ADMIN ---
-@admin.before_request
-@login_required
-def is_admin():
-    """Memastikan hanya user dengan role 'admin' yang bisa masuk ke blueprint ini"""
-    if current_user.role != 'admin':
-        flash('Akses ditolak! Anda bukan administrator.', 'danger')
-        return redirect(url_for('main.dashboard'))
-
-
-# --- DASHBOARD & STATISTIK (FIXED & FULL LOGIC) ---
+# --- DASHBOARD ---
 @admin.route('/dashboard')
+@login_required
+@admin_required
 def dashboard():
-    """
-    Menghitung statistik utama Command Center.
-    Sinkron dengan card: Total, SLA Overdue, Sedang, dan Tuntas.
-    """
-    reports_query = Report.query
+    from app.models import Report, User
+    from sqlalchemy import func
 
-    # Statistik Utama untuk Card Dashboard (Nilai Tidak Tetap)
+    f_kategori = request.args.get('kategori', '').strip()
+    f_status = request.args.get('status', '').strip()
+
+    query = Report.query.filter_by(is_archived=False)
+    if f_kategori and f_kategori != 'Semua Kategori':
+        query = query.filter(Report.kategori.ilike(f_kategori))
+    if f_status and f_status != 'Semua Status':
+        query = query.filter_by(status_warna=f_status)
+
+    all_reports = query.order_by(Report.created_at.desc()).all()
+    recent_reports = all_reports[:10]
+
+    dua_jam_lalu = datetime.utcnow() - timedelta(hours=2)
+    sla_overdue = Report.query.filter(
+        Report.status_warna == 'merah',
+        Report.created_at < dua_jam_lalu,
+        Report.is_archived == False
+    ).count()
+
+    archived_count = Report.query.filter_by(is_archived=True).count()
+
     stats = {
-        'total_reports': reports_query.count(),
-        'darurat': reports_query.filter_by(status_warna='merah').count(),  # SLA Overdue / Urgent
-        'sedang': reports_query.filter_by(status_warna='kuning').count(),  # Urgency Sedang
-        'proses': reports_query.filter_by(status_warna='biru').count(),  # Sedang Dikerjakan
-        'selesai': reports_query.filter_by(status_warna='hijau').count(),  # Tuntas
-        'total_warga': User.query.filter(User.role != 'admin').count()
+        'total_reports': Report.query.filter_by(is_archived=False).count(),
+        'darurat_reports': Report.query.filter_by(status_warna='merah', is_archived=False).count(),
+        'biasa_reports': Report.query.filter(Report.status_warna != 'merah', Report.is_archived == False).count(),
+        'selesai_reports': Report.query.filter_by(status_warna='biru', is_archived=False).count(),
+        'total_users': User.query.filter_by(role='user').count(),
+        'sla_warning': sla_overdue,
+        'archived_count': archived_count
     }
 
-    # Logika Grafik Mingguan (7 Hari Terakhir)
-    days, weekly_data = [], []
-    day_labels = {'Mon': 'Sen', 'Tue': 'Sel', 'Wed': 'Rab', 'Thu': 'Kam', 'Fri': 'Jum', 'Sat': 'Sab', 'Sun': 'Min'}
+    # Logika Grafik
+    weekly_data, days = [], []
+    try:
+        for i in range(6, -1, -1):
+            target_date = (datetime.utcnow() - timedelta(days=i)).date()
+            count = Report.query.filter(func.date(Report.created_at) == target_date).count()
+            weekly_data.append(count)
+            day_labels = {'Mon': 'Sen', 'Tue': 'Sel', 'Wed': 'Rab', 'Thu': 'Kam', 'Fri': 'Jum', 'Sat': 'Sab',
+                          'Sun': 'Min'}
+            raw_day = (datetime.utcnow() - timedelta(days=i)).strftime('%a')
+            days.append(day_labels.get(raw_day, raw_day))
+    except Exception:
+        weekly_data, days = [0] * 7, ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 
-    for i in range(6, -1, -1):
-        target_date = (datetime.now() - timedelta(days=i)).date()
-        raw_day = (datetime.now() - timedelta(days=i)).strftime('%a')
-        days.append(day_labels.get(raw_day, raw_day))
-
-        start_day = datetime.combine(target_date, time.min)
-        end_day = datetime.combine(target_date, time.max)
-
-        count = Report.query.filter(
-            Report.created_at >= start_day,
-            Report.created_at <= end_day
-        ).count()
-        weekly_data.append(count)
-
-    # 10 Laporan Terbaru untuk Tabel Dashboard
-    recent_reports = Report.query.order_by(Report.created_at.desc()).limit(10).all()
-
-    return render_template('admin/dashboard.html',
-                           stats=stats,
-                           recent_reports=recent_reports,
-                           days=days,
-                           weekly_data=weekly_data,
-                           now=datetime.now())
+    return render_template('admin/dashboard.html', stats=stats, reports=recent_reports, recent_reports=recent_reports,
+                           all_reports=all_reports, weekly_data=weekly_data, days=days, now=datetime.utcnow())
 
 
-# --- API MAPS (SINKRONISASI PIN MULTI-WARNA) ---
+# --- API MAPS ---
 @admin.route('/api/reports-map-data')
 def reports_map_data():
-    """Endpoint API untuk merender marker di Peta Leaflet/Google Maps Admin"""
-    reports = Report.query.filter(
-        Report.latitude.isnot(None),
-        Report.longitude.isnot(None),
-        Report.is_archived == False
-    ).all()
+    from app.models import Report
+    reports = Report.query.filter_by(is_archived=False).all()
 
     data = []
     for r in reports:
-        # Penentuan label urgensi teks berdasarkan warna status
-        urgensi_text = "BIASA"
-        if r.status_warna == 'merah':
-            urgensi_text = "DARURAT"
-        elif r.status_warna == 'kuning':
-            urgensi_text = "SEDANG"
+        try:
+            lat_raw = r.latitude
+            lng_raw = r.longitude
 
-        data.append({
-            'id': r.id,
-            'judul': r.judul or "Tanpa Judul",
-            'lat': r.latitude,
-            'lng': r.longitude,
-            'status_warna': r.status_warna or 'biru',
-            'urgensi_label': urgensi_text,
-            'foto': r.foto_awal if r.foto_awal else None,
-            'pelapor': r.author.nama if r.author else 'Anonim',
-            'kategori': r.kategori or 'Umum',
-            'url_detail': url_for('admin.view_report', report_id=r.id),
-            'created_at': r.created_at.strftime('%d/%m/%Y %H:%M')
-        })
+            if lat_raw in [None, 0, "0", ""] or lng_raw in [None, 0, "0", ""]:
+                lat = -7.5460 + random.uniform(-0.01, 0.01)
+                lng = 112.2330 + random.uniform(-0.01, 0.01)
+            else:
+                lat = float(lat_raw)
+                lng = float(lng_raw)
+
+            tgl_str = r.created_at.strftime('%d/%m/%Y %H:%M') if r.created_at else "-"
+
+            data.append({
+                'id': r.id,
+                'judul': r.judul or f"Laporan #{r.id}",
+                'lat': lat,
+                'lng': lng,
+                'status_warna': (r.status_warna or 'biru').lower(),
+                'url_detail': url_for('admin.view_report', report_id=r.id),
+                'foto': r.foto_awal if hasattr(r, 'foto_awal') else None,
+                'created_at': tgl_str
+            })
+        except Exception:
+            continue
+
     return jsonify(data)
 
 
-# --- LOG LAPORAN (MANAGEMENT TABLE) ---
+# --- CATEGORY MANAGEMENT ---
+@admin.route('/categories', methods=['GET', 'POST'])
+@admin.route('/master-kategori', endpoint='master_kategori', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def manage_categories():
+    from app import db
+    from app.models import Category
+    import re
+    if request.method == 'POST':
+        nama = request.form.get('nama')
+        if nama:
+            slug = re.sub(r'[-\s]+', '-', re.sub(r'[^\w\s-]', '', nama).strip().lower())
+            if not Category.query.filter_by(slug=slug).first():
+                db.session.add(Category(name=nama, slug=slug))
+                db.session.commit()
+                flash('Kategori ditambahkan!', 'success')
+        return redirect(url_for('admin.master_kategori'))
+    cats = Category.query.order_by(Category.name.asc()).all()
+    return render_template('admin/categories.html', categories=cats, now=datetime.utcnow())
+
+
+@admin.route('/category/<int:cat_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_category(cat_id):
+    from app import db
+    from app.models import Category
+    cat = Category.query.get_or_404(cat_id)
+    db.session.delete(cat)
+    db.session.commit()
+    flash('Kategori dihapus.', 'success')
+    return redirect(url_for('admin.master_kategori'))
+
+
+# --- REPORTS & ARCHIVE ---
 @admin.route('/reports')
+@login_required
+@admin_required
 def reports():
-    """Manajemen daftar laporan dengan filter status, kategori, dan pencarian global"""
-    status_filter = request.args.get('status', 'Semua').lower()
-    kategori_filter = request.args.get('kategori') # MENANGKAP FILTER KATEGORI SIDEBAR
-    search = request.args.get('search', '')
-    query = Report.query
-
-    # Logika Filter Kategori (image_6fbd39.png)
-    if kategori_filter:
-        # Membersihkan tanda '+' dari URL jika ada
-        kategori_clean = kategori_filter.replace('+', ' ')
-        query = query.filter(Report.kategori == kategori_clean)
-
-    # Logika Filter Status
-    if status_filter != 'semua':
-        color_map = {'darurat': 'merah', 'proses': 'biru', 'selesai': 'hijau', 'sedang': 'kuning'}
-        target_color = color_map.get(status_filter)
-        if target_color:
-            query = query.filter_by(status_warna=target_color)
-
-    # Logika Pencarian
-    if search:
-        query = query.filter(or_(
-            Report.judul.ilike(f'%{search}%'),
-            Report.id.ilike(f'%{search}%'),
-            Report.deskripsi.ilike(f'%{search}%')
-        ))
-
-    reports_list = query.order_by(Report.created_at.desc()).all()
-    return render_template('admin/reports.html', reports=reports_list)
+    from app.models import Report, Category
+    page = request.args.get('page', 1, type=int)
+    query = Report.query.filter_by(is_archived=False)
+    pagination = query.order_by(Report.created_at.desc()).paginate(page=page, per_page=10, error_out=False)
+    arch_count = Report.query.filter_by(is_archived=True).count()
+    return render_template('admin/reports.html', reports=pagination.items, pagination=pagination,
+                           categories=Category.query.all(), arch_count=arch_count, now=datetime.utcnow())
 
 
-# --- UPDATE PROGRESS (ADMIN FEEDBACK LOGIC) ---
-@admin.route('/report/<int:report_id>/update-progress', methods=['POST'])
-def update_progress(report_id):
-    """Menangani perubahan status dan upload bukti penyelesaian oleh admin"""
+@admin.route('/reports/archived')
+@login_required
+@admin_required
+def archived_reports():
+    from app.models import Report
+    page = request.args.get('page', 1, type=int)
+    pagination = Report.query.filter_by(is_archived=True).order_by(Report.created_at.desc()).paginate(page=page,
+                                                                                                      per_page=10,
+                                                                                                      error_out=False)
+    return render_template('admin/archived_reports.html', reports=pagination.items, pagination=pagination,
+                           now=datetime.utcnow())
+
+
+@admin.route('/report/<int:report_id>/archive/<string:action>', methods=['POST'])
+@login_required
+@admin_required
+def toggle_archive(report_id, action):
+    from app import db
+    from app.models import Report
     report = Report.query.get_or_404(report_id)
-    status_baru = request.form.get('status_warna')
-    komentar_admin = request.form.get('komentar_admin')
+    report.is_archived = (action == 'archive')
+    db.session.commit()
+    return jsonify({'status': 'success', 'message': f'Berhasil di-{action}'})
 
-    if status_baru:
-        # Simpan status lama untuk pengecekan poin nanti
-        status_lama = report.status_warna
-        report.status_warna = status_baru
 
-        if komentar_admin:
-            report.komentar_admin = komentar_admin
+# --- MODERASI & UPDATE ---
+@admin.route('/report/<int:report_id>')
+@login_required
+@admin_required
+def view_report(report_id):
+    from app.models import Report
+    return render_template('admin/view_report.html', report=Report.query.get_or_404(report_id), now=datetime.utcnow())
 
-        # Handle Upload Foto Progress/Selesai
-        if 'foto_feedback' in request.files:
-            file = request.files['foto_feedback']
-            if file and file.filename != '':
-                filename = save_feedback_photo(file)
-                if status_baru == 'biru':
-                    report.foto_proses = filename
-                elif status_baru == 'hijau':
-                    report.foto_selesai = filename
 
-        # Update Poin User jika Laporan Selesai (Penghargaan Warga)
-        if status_baru == 'hijau' and status_lama != 'hijau':
-            if report.author:
-                report.author.poin_warga = (report.author.poin_warga or 0) + 20
+@admin.route('/report/<int:report_id>/approve', methods=['POST'])
+@login_required
+@admin_required
+def approve_report(report_id):
+    from app import db
+    from app.models import Report, User
+    report = Report.query.get_or_404(report_id)
+    user = User.query.get(report.user_id)
+    report.is_approved = True
+    report.approved_at = datetime.utcnow()
+    if report.status_warna in ['abu-abu', 'abu', None]:
+        report.status_warna = 'merah'
+    if user:
+        user.poin_warga += 10
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+@admin.route('/report/<int:report_id>/reject-hoax', methods=['POST'])
+@login_required
+@admin_required
+def reject_hoax(report_id):
+    from app import db
+    from app.models import Report, User
+    report = Report.query.get_or_404(report_id)
+    user = User.query.get(report.user_id)
+    if user:
+        user.poin_warga -= 50
+    db.session.delete(report)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+@admin.route('/report/update/<int:report_id>', methods=['POST'])
+@login_required
+@admin_required
+def update_status(report_id):
+    from app import db
+    from app.models import Report
+    report = Report.query.get_or_404(report_id)
+    new_status = request.form.get('status_warna')
+    catatan = request.form.get('catatan_admin')
+    if new_status:
+        report.status_warna = new_status
+        if catatan:
+            report.deskripsi += f"\n\n[Catatan Admin] {catatan}"
+        if new_status == 'biru':
             report.resolved_at = datetime.utcnow()
-
         db.session.commit()
-        flash(f'Laporan #{report_id} diperbarui ke status {status_baru.upper()}!', 'success')
+        flash('Status diperbarui!', 'success')
+    return redirect(url_for('admin.view_report', report_id=report.id))
 
-    return redirect(request.referrer or url_for('admin.dashboard'))
+
+@admin.route('/report/<int:report_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def delete_report(report_id):
+    from app import db
+    from app.models import Report
+    db.session.delete(Report.query.get_or_404(report_id))
+    db.session.commit()
+    flash('Laporan dihapus.', 'success')
+    return redirect(url_for('admin.reports'))
 
 
 # --- USER MANAGEMENT ---
 @admin.route('/users')
+@login_required
+@admin_required
 def users():
-    """Melihat daftar warga mahasantri/user yang terdaftar"""
-    users_list = User.query.filter(User.role != 'admin').order_by(User.id.desc()).all()
-    return render_template('admin/users.html', users=users_list)
+    from app.models import User
+    all_users = User.query.filter_by(role='user').order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=all_users, now=datetime.utcnow())
 
 
-# --- VIEW DETAIL ---
-@admin.route('/report/<int:report_id>/view')
-def view_report(report_id):
-    """Melihat detail lengkap satu laporan termasuk koordinat GPS"""
-    report = Report.query.get_or_404(report_id)
-    return render_template('admin/view_report.html', report=report)
+@admin.route('/user/<int:user_id>/toggle', methods=['POST'])
+@login_required
+@admin_required
+def toggle_user(user_id):
+    from app import db
+    from app.models import User
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    return jsonify({'status': 'success', 'is_active': user.is_active})
 
 
-# --- BROADCAST SYSTEM (SIARAN DARURAT) ---
-@admin.route('/broadcast', methods=['GET', 'POST'])
-def broadcast():
-    """Mengirim pesan broadcast bencana/darurat ke seluruh landing page warga"""
-    if request.method == 'POST':
-        alert = EmergencyAlert(
-            tipe_bencana=request.form.get('tipe_bencana'),
-            pesan=request.form.get('pesan'),
-            wilayah_terdampak=request.form.get('wilayah_terdampak'),
-            level_bahaya=request.form.get('level_bahaya'),
-            created_at=datetime.utcnow()
-        )
-        db.session.add(alert)
+@admin.route('/user/delete/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_user(user_id):
+    from app import db
+    from app.models import User
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user)
+    db.session.commit()
+    flash(f'User {user.nama} dihapus.', 'success')
+    return redirect(url_for('admin.users'))
+
+
+# --- RESET PASSWORD USER ---
+@admin.route('/user/reset-password/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def reset_password_user(user_id):
+    from app import db
+    from app.models import User
+    user = User.query.get_or_404(user_id)
+    new_password = request.form.get('password')
+
+    if not new_password or len(new_password) < 6:
+        return jsonify({'status': 'error', 'message': 'Password minimal 6 karakter.'}), 400
+
+    try:
+        # SINKRONISASI: Menggunakan password_hash sesuai models.py
+        user.password_hash = generate_password_hash(new_password)
         db.session.commit()
-        flash('Siaran Darurat berhasil dipublikasikan!', 'success')
-        return redirect(url_for('admin.broadcast'))
+        return jsonify({'status': 'success', 'message': f'Password untuk {user.nama} berhasil direset.'})
+    except Exception:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': 'Gagal mereset password.'}), 500
 
-    alerts = EmergencyAlert.query.order_by(EmergencyAlert.created_at.desc()).all()
-    return render_template('admin/broadcast.html', alerts=alerts)
 
-
-# --- EXPORT HANDLERS ---
+# --- EXPORT ---
 @admin.route('/export/excel')
+@login_required
+@admin_required
 def export_excel():
-    flash('Fitur Export Excel sedang disiapkan untuk laporan bulanan.', 'info')
-    return redirect(url_for('admin.dashboard'))
+    from app.models import Report
+    df = pd.DataFrame([{'ID': r.id, 'Judul': r.judul, 'Status': r.status_warna} for r in Report.query.all()])
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    output.seek(0)
+    return send_file(output, download_name="Laporan.xlsx", as_attachment=True)
 
 
 @admin.route('/export/pdf')
+@login_required
+@admin_required
 def export_pdf():
-    flash('Menghasilkan dokumen PDF Command Center...', 'info')
-    return redirect(url_for('admin.dashboard'))
+    from app.models import Report
+    output = BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=landscape(letter))
+    data = [['ID', 'Judul', 'Kategori', 'Status']]
+    for r in Report.query.all():
+        data.append([r.id, (r.judul[:20] if r.judul else '-'), r.kategori, r.status_warna])
+    t = Table(data)
+    t.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, 0), colors.grey), ('GRID', (0, 0), (-1, -1), 1, colors.black)]))
+    doc.build([Paragraph("REKAP LAPORAN", getSampleStyleSheet()['Title']), t])
+    output.seek(0)
+    return send_file(output, download_name="Laporan.pdf", as_attachment=True)
+
+
+# --- BROADCAST & PROFILE ---
+@admin.route('/broadcast', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def broadcast():
+    from app import db
+    from app.models import EmergencyAlert
+    if request.method == 'POST':
+        db.session.add(EmergencyAlert(
+            tipe_bencana=request.form.get('tipe_bencana'),
+            pesan=request.form.get('pesan'),
+            wilayah_terdampak=request.form.get('wilayah_terdampak'),
+            level_bahaya=request.form.get('level_bahaya')
+        ))
+        db.session.commit()
+        flash('Broadcast terkirim!', 'success')
+    return render_template('admin/broadcast.html', now=datetime.utcnow())
+
+
+@admin.route('/profile')
+@login_required
+@admin_required
+def profile():
+    return render_template('admin/profile.html', now=datetime.utcnow())
+
+
+# --- EDIT PROFILE ADMIN ---
+@admin.route('/profile/edit', methods=['POST'])
+@login_required
+@admin_required
+def edit_profile():
+    from app import db
+    from app.models import User
+
+    user = User.query.get(current_user.id)
+    if not user:
+        abort(404)
+
+    nama = request.form.get('nama')
+    email = request.form.get('email')
+    password = request.form.get('password')
+
+    if nama: user.nama = nama
+    if email: user.email = email
+
+    if password:
+        # SINKRONISASI: Menggunakan password_hash
+        user.password_hash = generate_password_hash(password)
+
+    file = request.files.get('foto')
+    if file and file.filename != '':
+        filename = secure_filename(f"admin_{user.id}_{file.filename}")
+        upload_path = os.path.join('app', 'static', 'uploads', 'profiles')
+        if not os.path.exists(upload_path):
+            os.makedirs(upload_path)
+
+        file.save(os.path.join(upload_path, filename))
+        # SINKRONISASI: Menggunakan foto_profil sesuai models.py
+        user.foto_profil = filename
+
+    db.session.commit()
+    flash('Profil berhasil diperbarui!', 'success')
+    return redirect(url_for('admin.profile'))

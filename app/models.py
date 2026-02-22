@@ -10,15 +10,18 @@ class User(UserMixin, db.Model):
     nik = db.Column(db.String(16), unique=True, nullable=False)
     no_wa = db.Column(db.String(15), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True)
+
+    # Kolom password_hash sudah sinkron dengan sistem login terbaru
     password_hash = db.Column(db.String(255), nullable=False)
+
     role = db.Column(db.String(20), default='user')
     kecamatan = db.Column(db.String(50), nullable=False)
     alamat = db.Column(db.Text)
     poin_warga = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
-    is_online = db.Column(db.Boolean, default=False)  # Status Online/Offline
-    last_seen = db.Column(db.DateTime, default=datetime.utcnow)  # Waktu log aktivitas
+    is_online = db.Column(db.Boolean, default=False)
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     foto_profil = db.Column(db.String(255), default='default.png')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -53,32 +56,31 @@ class Report(db.Model):
     kategori = db.Column(db.String(100), nullable=False)
 
     # Foto & Progres
-    foto_awal = db.Column(db.String(100), nullable=False)  # Foto 1 (Wajib)
-    foto_2 = db.Column(db.String(100), nullable=True)  # Foto 2 (Opsional)
-    foto_3 = db.Column(db.String(100), nullable=True)  # Foto 3 (Opsional)
+    foto_awal = db.Column(db.String(255), nullable=False)
+    foto_2 = db.Column(db.String(255), nullable=True)
+    foto_3 = db.Column(db.String(255), nullable=True)
 
-    # Lokasi (Kunci Sinkronisasi Peta)
+    # Lokasi (Penting agar Pin Muncul)
     latitude = db.Column(db.Float)
     longitude = db.Column(db.Float)
     alamat_manual = db.Column(db.String(255))
 
-    # Status & Moderasi (Kunci Warna Pin Peta)
+    # Status & Moderasi
     is_approved = db.Column(db.Boolean, default=False)
     is_archived = db.Column(db.Boolean, default=False)
-    # Default 'abu-abu', akan berubah jadi 'merah', 'kuning', 'biru', 'hijau'
     status_warna = db.Column(db.String(20), default='abu-abu')
-    status_label = db.Column(db.String(50))  # Untuk label cap "SUKSES", "DARURAT", dll.
+    status_label = db.Column(db.String(50))
 
-    # Statistik & Interaksi Aktif
-    support_count = db.Column(db.Integer, default=0)  # Sinkron dengan tombol Dukung
-    komentar_admin = db.Column(db.Text)  # Tanggapan resmi instansi
+    # Statistik & Interaksi
+    support_count = db.Column(db.Integer, default=0)
+    komentar_admin = db.Column(db.Text)
 
     # Timestamps
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     approved_at = db.Column(db.DateTime)
     resolved_at = db.Column(db.DateTime)
 
-    # Relasi Interaksi (Support/Comment)
+    # Relasi Interaksi
     comments = db.relationship('Interaction', backref='report', lazy='dynamic', cascade='all, delete-orphan')
 
 
@@ -97,11 +99,6 @@ class Interaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     report_id = db.Column(db.Integer, db.ForeignKey('reports.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-    tipe = db.Column(db.String(20))  # 'comment', 'support'
-    konten = db.Column(db.Text)  # Isi komentar
+    tipe = db.Column(db.String(20))
+    konten = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    class Category(db.Model):
-        id = db.Column(db.Integer, primary_key=True)
-        name = db.Column(db.String(100))
-        # Kolom 'icon' tidak ada di sini!
