@@ -34,3 +34,6 @@ Thumbs.db
 
 # Env
 .env
+.venv/
+config.py.bak*
+*.sql
