@@ -37,3 +37,6 @@ Thumbs.db
 .venv/
 config.py.bak*
 *.sql
+
+# Server-only static images
+app/static/img/
