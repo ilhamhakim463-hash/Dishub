@@ -19,7 +19,7 @@
     .bg-kuning { background-color: #f59e0b !important; color: white !important; }
     .bg-biru { background-color: #3b82f6 !important; color: white; }
 
-    /* NOMOR 5: CAP SUKSES STAMP - POSISI TENGAH GAMBAR */
+    /* CAP SUKSES STAMP */
     .stamp-overlay {
         position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
@@ -44,11 +44,9 @@
         backdrop-filter: blur(2px);
     }
 
-    /* Animation for Urgency */
     .blink-soft { animation: blinker 2s linear infinite; }
     @keyframes blinker { 50% { opacity: 0.6; } }
 
-    /* CCTV Simulation Styling */
     .cctv-overlay {
         position: absolute;
         top: 15px;
@@ -82,7 +80,7 @@
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
                 <div class="img-zoom-container position-relative">
-                    {% if report.status_label == 'SUKSES' %}
+                    {% if report.status_warna == 'biru' %}
                     <div class="stamp-overlay">
                         <div class="stamp-sukses-view">SUKSES</div>
                     </div>
@@ -117,7 +115,7 @@
                         <span class="badge bg-soft-primary text-primary px-3 py-2 rounded-pill">
                             <i class="bi bi-tag-fill me-1"></i> {{ report.kategori }}
                         </span>
-                        {% if report.urgency_level == 1 or report.status_warna == 'merah' %}
+                        {% if report.status_warna == 'merah' %}
                         <span class="badge bg-danger blink-soft px-3 py-2 rounded-pill shadow-sm">🚨 DARURAT</span>
                         {% endif %}
                     </div>
@@ -186,8 +184,7 @@
                                     <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_proses) }}"
                                          class="w-100 h-100"
                                          alt="Foto Proses"
-                                         style="object-fit: cover;"
-                                         onerror="this.src='https://placehold.co/600x400?text=Foto+Proses+Sedang+Dimuat'">
+                                         style="object-fit: cover;">
                                 </div>
                             </div>
                         </div>
@@ -206,8 +203,7 @@
                                     <img src="{{ url_for('static', filename='uploads/reports/' + report.foto_selesai) }}"
                                          class="w-100 h-100"
                                          alt="Foto Selesai"
-                                         style="object-fit: cover;"
-                                         onerror="this.src='https://placehold.co/600x400?text=Foto+Selesai+Sedang+Dimuat'">
+                                         style="object-fit: cover;">
                                 </div>
                             </div>
                         </div>
@@ -218,16 +214,10 @@
             {% endif %}
 
             <div class="d-flex flex-wrap gap-2 mb-4">
-                <button class="btn btn-primary rounded-pill px-4 shadow-sm btn-lg fs-6" onclick="supportReport({{ report.id }})">
-                    <i class="bi bi-hand-thumbs-up-fill me-2"></i> Dukung (<span id="supportCount">{{ report.support_count or 0 }}</span>)
+                <button class="btn btn-primary rounded-pill px-4 btn-lg fs-6 shadow-sm" data-bs-toggle="collapse" data-bs-target="#commentSection">
+                    <i class="bi bi-chat-dots-fill me-2"></i> Berikan Komentar
                 </button>
-                <button class="btn btn-outline-primary rounded-pill px-4 btn-lg fs-6 bg-white" data-bs-toggle="collapse" data-bs-target="#commentSection">
-                    <i class="bi bi-chat-dots-fill me-2"></i> Komentar
-                </button>
-                <button class="btn btn-outline-dark rounded-pill px-4 btn-lg fs-6 bg-white" onclick="shareReport()">
-                    <i class="bi bi-share-fill"></i>
-                </button>
-            </div>
+                </div>
 
             <div class="collapse show mb-5" id="commentSection">
                 <div class="card border-0 shadow-sm rounded-4 bg-white">
@@ -276,13 +266,9 @@
                 <div class="card-body">
                     <h6 class="fw-bold mb-3 text-uppercase small text-muted tracking-wider">Statistik Laporan</h6>
                     <div class="row g-0">
-                        <div class="col-6 border-end">
-                            <h3 class="fw-bold text-primary mb-0">{{ report.support_count or 0 }}</h3>
-                            <small class="text-muted x-small">DUKUNGAN</small>
-                        </div>
-                        <div class="col-6">
-                            <h3 class="fw-bold text-success mb-0">{{ comments|length }}</h3>
-                            <small class="text-muted x-small">KOMENTAR</small>
+                        <div class="col-12">
+                            <h3 class="fw-bold text-primary mb-0">{{ comments|length }}</h3>
+                            <small class="text-muted x-small">TOTAL KOMENTAR</small>
                         </div>
                     </div>
                     <hr class="my-3 opacity-25">
@@ -334,29 +320,7 @@
     }).addTo(map).bindPopup('Titik Lokasi Kejadian').openPopup();
 {% endif %}
 
-function supportReport(id) {
-    fetch(`/report/${id}/support`, {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-    })
-    .then(r => r.json())
-    .then(data => {
-        if(data.status === 'success') {
-            document.getElementById('supportCount').textContent = data.count;
-            alert(data.message);
-        } else {
-            alert(data.message);
-        }
-    })
-    .catch(() => alert('Silakan login untuk memberikan dukungan.'));
-}
-
-function shareReport() {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-        alert('Link laporan berhasil disalin ke clipboard!');
-    });
-}
+// Fungsi ShareReport dihapus karena elemen pemanggilnya sudah tidak ada
 
 function startCCTVStream() {
     const screen = document.getElementById('cctv-screen');

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3307
--- Generation Time: Feb 18, 2026 at 05:45 AM
+-- Generation Time: Feb 24, 2026 at 04:27 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -91,7 +91,9 @@ CREATE TABLE `emergency_alerts` (
 
 INSERT INTO `emergency_alerts` (`id`, `tipe_bencana`, `pesan`, `wilayah_terdampak`, `level_bahaya`, `created_at`) VALUES
 (1, '', '', 'Semua', 'bahaya', '2026-02-09 22:59:28'),
-(2, 'hgjtjhhdhdh', 'fghrdtdfsr rgsgw', 'Jombang', 'bahaya', '2026-02-12 06:25:06');
+(2, 'hgjtjhhdhdh', 'fghrdtdfsr rgsgw', 'Jombang', 'bahaya', '2026-02-12 06:25:06'),
+(3, 'banjir bandang', 'aswr wr', 'Jombang', 'siaga', '2026-02-23 07:40:43'),
+(4, 'banjir bandang', 'asdfw', 'Jombang', 'siaga', '2026-02-23 08:00:19');
 
 -- --------------------------------------------------------
 
@@ -123,7 +125,11 @@ INSERT INTO `interactions` (`id`, `report_id`, `user_id`, `tipe`, `konten`, `cre
 (9, 15, 2, 'comment', 'seegra diperbaiki', '2026-02-12 05:42:38'),
 (10, 16, 7, 'comment', 'segera diatasi ', '2026-02-12 06:58:54'),
 (11, 16, 7, 'comment', 'ffff', '2026-02-12 14:36:27'),
-(12, 19, 2, 'comment', 'ersttewesr', '2026-02-15 02:18:26');
+(12, 19, 2, 'comment', 'ersttewesr', '2026-02-15 02:18:26'),
+(13, 30, 2, 'comment', 'vasf trtvasdf3w 4', '2026-02-20 04:19:10'),
+(14, 35, 2, 'comment', 'vasf trtvasdf3w 4', '2026-02-22 04:38:31'),
+(15, 35, 12, 'comment', 'gysiuhf aer', '2026-02-24 03:22:31'),
+(16, 38, 12, 'comment', 'asdfwDS', '2026-02-24 03:25:57');
 
 -- --------------------------------------------------------
 
@@ -199,11 +205,25 @@ INSERT INTO `reports` (`id`, `user_id`, `category_id`, `judul`, `deskripsi`, `ka
 (13, 2, NULL, 'kemalingan', 'wowwww\n\n[Catatan Admin 12/02/2026 11:24] yeahhhhh', 'Parkir Liar', 'foto_awal_2_20260212_112350_Cuplikan_layar_2026-01-14_111123.png', NULL, -7.52375, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_13_20260212112447.jpg', NULL, 0, '2026-02-12 04:23:50', '2026-02-12 10:58:29', '2026-02-11 21:24:13', '2026-02-11 21:24:47', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
 (15, 2, NULL, 'jalan berlobang', 'jhjhjhhjjh\n\n[Catatan Admin 12/02/2026 11:37] xcszasd\n\n[Catatan Admin 12/02/2026 11:38] asdsasaasd\n\n[Catatan Admin 12/02/2026 11:39] yeahhhhh', 'Kemacetan Parah', 'foto_awal_2_20260212_113725_Screenshot_2026-02-12_110916.png', NULL, -7.52374, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_15_20260212113936.jpg', NULL, 0, '2026-02-12 04:37:25', '2026-02-12 13:05:06', '2026-02-11 21:37:39', '2026-02-11 21:39:36', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
 (16, 2, NULL, 'gggg', 'r', 'Fasilitas Pejalan Kaki Rusak', 'foto_awal_2_20260212_134334_Cuplikan_layar_2026-01-13_090410.png', NULL, -7.52375, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-12 06:43:34', '2026-02-12 10:58:24', '2026-02-11 23:57:40', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
-(17, 7, NULL, 'gggg', 'sdfvdsg\n\n[Catatan Admin 12/02/2026 13:58] yeahhhhh', 'Kemacetan Parah', 'foto_awal_7_20260212_135038_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52373, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_17_20260212135800.jpg', NULL, 0, '2026-02-12 06:50:38', '2026-02-13 01:28:52', '2026-02-11 23:57:38', '2026-02-11 23:58:00', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(17, 7, NULL, 'gggg', 'sdfvdsg\n\n[Catatan Admin 12/02/2026 13:58] yeahhhhh', 'Kemacetan Parah', 'foto_awal_7_20260212_135038_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52373, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_17_20260212135800.jpg', NULL, 0, '2026-02-12 06:50:38', '2026-02-21 02:18:00', '2026-02-11 23:57:38', '2026-02-11 23:58:00', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
 (18, 7, NULL, 'sampah menumpuk di selokan sepanjang 200m di daerah plosogeneng', 'fsdsdd\n\n[Catatan Admin 15/02/2026 09:17] afwefwe', 'Lampu Lalu Lintas Mati / Rusak', 'foto_awal_7_20260212_191119_download.png', NULL, -7.52372, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_18_20260215091728.jpg', NULL, 0, '2026-02-12 12:11:19', '2026-02-15 02:17:28', '2026-02-12 19:11:41', '2026-02-14 19:17:28', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
 (19, 2, NULL, 'kemalingan', 'maling\n\n[Catatan Admin 13/02/2026 09:12] fghghhghghggh\n\n[Catatan Admin 13/02/2026 09:18] youuuu', 'Angkutan Umum Bermasalah', 'foto_awal_2_202602130831_download.png', NULL, -7.52373, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_19_20260213091847.jpg', NULL, 0, '2026-02-12 18:31:32', '2026-02-15 02:37:33', '2026-02-12 18:35:12', '2026-02-12 19:18:47', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
-(20, 2, NULL, 'kemalingan', 'yjtfyujfty', 'Angkutan Umum Bermasalah', 'foto_awal_2_202602152112_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52371, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'merah', 'normal', 0, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-15 07:12:18', '2026-02-15 14:12:18', NULL, NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
-(21, 2, NULL, 'jalan berlobang', 'sadferwfsdfearfae\n\n[Catatan Admin 17/02/2026 13:07] asdferaf', 'Fasilitas Pejalan Kaki Rusak', 'foto_awal_2_202602161304_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52373, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_21_20260217130717.jpg', NULL, 0, '2026-02-15 23:04:57', '2026-02-17 06:07:17', '2026-02-16 23:07:06', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL);
+(20, 2, NULL, 'kemalingan', 'yjtfyujfty', 'Angkutan Umum Bermasalah', 'foto_awal_2_202602152112_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52371, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'merah', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-15 07:12:18', '2026-02-18 06:29:09', '2026-02-17 23:29:09', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(21, 2, NULL, 'jalan berlobang', 'sadferwfsdfearfae\n\n[Catatan Admin 17/02/2026 13:07] asdferaf', 'Fasilitas Pejalan Kaki Rusak', 'foto_awal_2_202602161304_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52373, 112.219, 'Plosogeneng, Jombang, East Java, Java, 61416, Indonesia', NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, 'selesai_21_20260217130717.jpg', NULL, 0, '2026-02-15 23:04:57', '2026-02-17 06:07:17', '2026-02-16 23:07:06', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(22, 2, NULL, 'jalan berlobang', 'bahaya', 'Kemacetan Parah', 'foto_awal_2_202602181320_a.jpeg', NULL, -7.5465, 112.233, 'Jalan Wage Rudolf Supratman III, Tawangsari, Jombatan, Jombang, East Java, Java, 61417, Indonesia', NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-17 23:20:01', '2026-02-18 06:22:56', '2026-02-17 23:21:50', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(23, 2, NULL, 'marka jalan hilang', 'di sepanjang jalan umum jombang', 'Marka Jalan Pudar / Hilang', 'foto_awal_2_202602192122_download.png', NULL, -7.5465, 112.233, NULL, NULL, 'merah', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 07:22:43', '2026-02-19 14:31:01', '2026-02-19 07:31:01', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(24, 2, NULL, 'pudarnya marka jalan', 'di senajang jalan kota jombang\n\n[Catatan Admin 19/02/2026 21:29] terimakaish atas laporan anda', 'Marka Jalan Pudar / Hilang', 'foto_awal_2_202602192127_download.png', NULL, -7.5465, 112.233, NULL, NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 07:27:23', '2026-02-19 14:31:09', '2026-02-19 07:29:28', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(27, 2, NULL, 'kemalingan', 'zsdfgawert', 'Jalan Berbahaya / Rawan Kecelakaan', 'foto_awal_2_202602192135_cv.png', NULL, -7.52374, 112.219, NULL, NULL, 'merah', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 07:35:40', '2026-02-19 14:36:08', '2026-02-19 07:36:08', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(28, 2, NULL, 'kemalingan', 'asdqwer', 'Lampu Lalu Lintas Mati / Rusak', 'foto_awal_2_202602192145_aura.png', NULL, -7.52373, 112.219, NULL, NULL, 'merah', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 07:45:35', '2026-02-19 14:59:10', '2026-02-19 07:59:10', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(29, 2, NULL, 'dfghdr bc', 'dsfrq ctawercq34', 'Jalan Berbahaya / Rawan Kecelakaan', 'foto_awal_2_202602192151_541940081_18060084341379191_2546127724466123054_n.jpg', NULL, -7.52376, 112.219, NULL, NULL, 'merah', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 07:51:16', '2026-02-19 14:51:55', '2026-02-19 07:51:55', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(30, 2, NULL, 'sampah menumpuk di selokan sepanjang 200m di daerah plosogeneng', 'asdfwqfrsadefewar 34q\n\n[Catatan Admin 20/02/2026 11:18] xcgbse tgse twsrq', 'Jalan Berbahaya / Rawan Kecelakaan', 'foto_awal_2_202602201117_cvb.png', NULL, -7.52375, 112.219, NULL, NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 21:17:59', '2026-02-20 04:18:30', '2026-02-19 21:18:17', '2026-02-19 21:18:30', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(31, 2, NULL, 'jalan berlobang', 'segera diperbaiki jalan berlobang di tengah kota\n\n[Catatan Admin 20/02/2026 11:25] sedang diperbaiki', 'Jalan Berbahaya / Rawan Kecelakaan', 'foto_awal_2_202602201123_download.png', NULL, -7.52374, 112.219, NULL, NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-19 21:23:34', '2026-02-20 04:26:29', '2026-02-19 21:25:31', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(32, 2, NULL, 'sampah menumpuk di selokan sepanjang 200m di daerah plosogeneng', 'fdgertarweaew', 'Jalan Berbahaya / Rawan Kecelakaan', 'foto_awal_2_202602210922_download.png', NULL, -7.52374, 112.219, NULL, NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-20 19:22:13', '2026-02-21 03:55:40', '2026-02-20 20:55:40', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(34, 2, NULL, 'gggg', 'sadwr af ', 'Angkutan Umum Bermasalah', 'foto_awal_2_202602211055_cv.png', NULL, -7.52374, 112.219, NULL, NULL, 'kuning', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-20 20:55:04', '2026-02-21 03:55:38', '2026-02-20 20:55:38', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(35, 2, NULL, 'gggg', 'zxcwqertqw crqwr \n\n[Catatan Admin] sdgwtewr', 'APILL Error', 'foto_awal_2_202602211343_download.png', NULL, -7.5465, 112.233, NULL, NULL, 'merah', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-20 23:43:37', '2026-02-22 04:37:36', '2026-02-21 21:35:57', NULL, NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(36, 2, NULL, 'sampah menumpuk di selokan sepanjang 200m di daerah plosogeneng', 'ZXefrawer awr w\n\n[Catatan Admin] xzf ersfser', 'APILL Error', 'foto_awal_2_202602221135_Cuplikan_layar_2026-01-13_105929.png', NULL, -7.52373, 112.219, NULL, NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-21 21:35:20', '2026-02-22 04:36:18', '2026-02-21 21:35:59', '2026-02-21 21:36:18', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(37, 2, NULL, 'gggg', 'setaw4\n\n[Catatan Admin] fwerQWE ', 'Jalan Berbahaya / Rawan Kecelakaan', 'foto_awal_2_202602241010_Cuplikan_layar_2026-01-13_104753.png', NULL, -7.52376, 112.219, NULL, NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-23 20:10:48', '2026-02-24 03:11:25', '2026-02-23 20:11:06', '2026-02-23 20:11:25', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL),
+(38, 12, NULL, 'sampah menumpuk disamping jalan raya', 'asfd r\n\n[Catatan Admin] sdfawrwe', 'APILL Error', 'foto_awal_12_202602241023_Cuplikan_layar_2026-01-14_111123.png', NULL, -7.52376, 112.219, NULL, NULL, 'biru', 'normal', 1, 'neutral', NULL, 0, 0, NULL, NULL, NULL, 0, '2026-02-23 20:23:35', '2026-02-24 03:24:02', '2026-02-23 20:23:53', '2026-02-23 20:24:02', NULL, NULL, NULL, NULL, 0, NULL, 0, NULL);
 
 -- --------------------------------------------------------
 
@@ -219,7 +239,7 @@ CREATE TABLE `users` (
   `poin_warga` int(11) DEFAULT 0,
   `nama` varchar(100) NOT NULL,
   `email` varchar(120) DEFAULT NULL,
-  `password_hash` varchar(255) NOT NULL,
+  `password_hash` varchar(255) DEFAULT NULL,
   `role` varchar(20) DEFAULT 'user',
   `foto_profil` varchar(255) DEFAULT 'default-avatar.png',
   `is_verified` tinyint(1) DEFAULT 0,
@@ -239,12 +259,14 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `nik`, `no_wa`, `kecamatan`, `poin_warga`, `nama`, `email`, `password_hash`, `role`, `foto_profil`, `is_verified`, `telepon`, `alamat`, `is_active`, `created_at`, `updated_at`, `last_login`, `is_online`, `last_seen`) VALUES
 (1, '3517010101010001', NULL, NULL, 0, 'Admin Diskominfo Jombang', 'admin@diskominfo.jombang.go.id', 'scrypt:32768:8:1$iKZ0f8XL6M2zYqcl$ac5f29c54c6e935d8e8d4e4b0b0f5e3a8e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e', 'admin', 'default-avatar.png', 0, NULL, NULL, 1, '2026-02-05 02:41:55', '2026-02-05 02:41:55', NULL, 0, NULL),
-(2, '3517222222222222', '085267967492', 'Bandar Kedung Mulyo', 150, 'iwan', 'riswanwan0812@gmail.com', 'scrypt:32768:8:1$WYRSl21gG1zfK8zL$13a805be9d74e01dcc0d7db6354342803c5430102f57f004800a4427c4e0af657a882ad4c2be026c5f56f2800b6fb81076dce72971d359054b4e88468e4d0f9b', 'user', 'user_2_aura.png', 0, NULL, NULL, 1, '2026-02-05 03:59:45', '2026-02-17 06:07:06', NULL, 0, NULL),
+(2, '3517222222222222', '085267967492', 'Bandar Kedung Mulyo', 290, 'iwan', 'riswanwan0812@gmail.com', 'scrypt:32768:8:1$jjpcBfYGSygXFNNk$d79a73247f7b88f0f6109a6a02502e88892f7f4f6ca58db0ef4658ee770715bb30934d475fef0c733ad7c327dd9e210398eb6be19591eebf3c16c9a030a9ecc2', 'user', 'user_2_Gemini_Generated_Image_e9uczte9uczte9uc_2.png', 0, NULL, NULL, 1, '2026-02-05 03:59:45', '2026-02-24 03:11:06', NULL, 0, NULL),
 (4, '3517000000000001', '08123456789', 'Jombang', 0, 'Admin Demo', 'admin@demo.com', 'scrypt:32768:8:1$VG6ax2vfchsnVvcm$e883e5d7a96d299432b2753172fee0e7d427114eaa1f81b7c643a5f76d12e6e4f23501f649c2ab3ade90f0d6f193f73c31cf7601665b7810214ea7410a9c07bc', 'admin', 'user_4_Gemini_Generated_Image_ec4tosec4tosec4t.png', 0, NULL, NULL, 1, '2026-02-06 00:37:06', '2026-02-06 14:26:00', NULL, 0, NULL),
-(6, '9988776655443322', '089999999999', 'Jombang', 20, 'Administrator Utama', 'admin@gmail.com', 'scrypt:32768:8:1$qJ73KNq1qENRGNmS$f2cb4d41067b5813049f5c8ca6bb1f263293129892f84cbce9355c9dc7fa00b817efcd5df5267656045dff3c2b98d82b33d5ed9ffaf15cb6ceb0ba80fd2bc236', 'admin', 'admin_6_20260218092341.jpg', 0, NULL, NULL, 1, '2026-02-06 07:29:51', '2026-02-18 02:23:41', NULL, 0, NULL),
+(6, '9988776655443322', '089999999999', 'Jombang', 20, 'Administrator Utama', 'admin@gmail.com', 'scrypt:32768:8:1$qJ73KNq1qENRGNmS$f2cb4d41067b5813049f5c8ca6bb1f263293129892f84cbce9355c9dc7fa00b817efcd5df5267656045dff3c2b98d82b33d5ed9ffaf15cb6ceb0ba80fd2bc236', 'admin', 'admin_6_20260220040444.jpg', 0, NULL, NULL, 1, '2026-02-06 07:29:51', '2026-02-19 21:04:44', NULL, 0, NULL),
 (7, '3517234484750980', '083842827344', 'Jombang', 20, 'Ilham ', 'ilham@gmail.com', 'scrypt:32768:8:1$SsmeVpfXyO7JbpCS$a139acf8039d97b0aeae8448e05b2590143b65267e10959f76bdae1689cd828576234603b8d5a312164b0ef0c061efd6881fcfd2639d8e371b98b0e830e57928', 'user', 'default.png', 0, NULL, NULL, 1, '2026-02-11 23:49:59', '2026-02-13 02:11:41', NULL, 0, NULL),
 (8, '3517453465365645', '088851422418', 'Plandaan', 0, 'dani', 'dani@gmail.com', 'scrypt:32768:8:1$lClwlVqIJKWzgxqb$356937e6b8b6d5f1c42fc90fb25e6963fb0fac860aaa1eec61f4a97d9b53e0e1899412a92bf7433fdaa3939acb37bfb7ee8beab7b72171707caae4f279da34f0', 'user', 'default.png', 0, NULL, NULL, 1, '2026-02-12 07:41:53', '2026-02-12 14:41:53', NULL, 0, '2026-02-12 14:41:53'),
-(9, '3517434235465767', '085266879678', 'Plandaan', 0, 'lana', 'lana@gmail.com', 'scrypt:32768:8:1$sNSjK34nv7k73aot$90f51c01aafb8eeca0e7cb40351e9f0879420b3e5146a137bd9b5171ce312cbdbbb17dd9420a16fbe394f171f66bb768fea9989408d707eebdf280b260bf4eef', 'user', 'user_9_aura.png', 0, NULL, NULL, 1, '2026-02-12 07:43:56', '2026-02-12 14:49:23', NULL, 0, '2026-02-12 14:43:56');
+(9, '3517434235465767', '085266879678', 'Plandaan', 0, 'lana', 'lana@gmail.com', 'scrypt:32768:8:1$sNSjK34nv7k73aot$90f51c01aafb8eeca0e7cb40351e9f0879420b3e5146a137bd9b5171ce312cbdbbb17dd9420a16fbe394f171f66bb768fea9989408d707eebdf280b260bf4eef', 'user', 'user_9_aura.png', 0, NULL, NULL, 1, '2026-02-12 07:43:56', '2026-02-12 14:49:23', NULL, 0, '2026-02-12 14:43:56'),
+(11, '3517786285112323', '088851482418', 'Jombang', 0, 'bayu', 'bayu@gmail.com', 'scrypt:32768:8:1$J0AdK9Vd6Yp0Uexe$2edad3cf35e0b77f9f08749fe566239591532eb80e8b8c73193e82801854359d9f749aa891ffb87ffd366e7977650a300f9ca886c80fff22ece8dcbd455b0d09', 'user', 'default.png', 0, NULL, NULL, 1, '2026-02-19 04:54:08', '2026-02-21 06:27:37', NULL, 0, '2026-02-19 11:54:08'),
+(12, '3517891298621321', '0896565876865', 'Jombang', 10, 'alaina', 'alaina@gmail.com', 'scrypt:32768:8:1$NLuoNlXRBuJE7lZU$97bf60cfe57e1e8f8cc3bd3f3e805a6098626d5472a58d61f56e67e1dd5ff7991342c199027e9f7c2587e9419fd19c46946c8906f228f9e8aaa6e2641466a97d', 'user', 'default.png', 0, NULL, NULL, 1, '2026-02-23 20:17:19', '2026-02-24 03:23:53', NULL, 0, '2026-02-24 03:17:19');
 
 --
 -- Indexes for dumped tables
@@ -324,19 +346,19 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `categories`
 --
 ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `emergency_alerts`
 --
 ALTER TABLE `emergency_alerts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `interactions`
 --
 ALTER TABLE `interactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -348,13 +370,13 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `reports`
 --
 ALTER TABLE `reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- Constraints for dumped tables

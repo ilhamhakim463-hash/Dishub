@@ -101,15 +101,15 @@
                     <form action="{{ url_for('admin.broadcast') }}" method="POST" id="broadcastForm">
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-muted text-uppercase">Tipe Peringatan</label>
-                            <input type="text" name="tipe" class="form-control form-control-lg bg-light"
+                            <input type="text" name="tipe_bencana" class="form-control form-control-lg bg-light"
                                    placeholder="Contoh: Banjir Bandang, Kebakaran, Perbaikan Jalan" required>
                         </div>
 
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-muted text-uppercase">Wilayah Terdampak</label>
-                                <select name="wilayah" class="form-select bg-light">
-                                    <option value="Semua">Semua Kecamatan</option>
+                                <select name="wilayah_terdampak" class="form-select bg-light" required>
+                                    <option value="Semua Kecamatan">Semua Kecamatan</option>
                                     <option value="Jombang">Kec. Jombang</option>
                                     <option value="Mojoagung">Kec. Mojoagung</option>
                                     <option value="Sumobito">Kec. Sumobito</option>
@@ -120,7 +120,7 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-muted text-uppercase">Level Bahaya</label>
-                                <select name="level" class="form-select bg-light">
+                                <select name="level_bahaya" class="form-select bg-light">
                                     <option value="waspada" class="text-warning">🟡 Waspada (Kuning)</option>
                                     <option value="siaga" class="text-warning">🟠 Siaga (Oranye)</option>
                                     <option value="bahaya" class="text-danger" selected>🔴 Bahaya (Merah)</option>
@@ -176,7 +176,8 @@
 <script>
     // Konfirmasi Sebelum Pengiriman Massal
     document.getElementById('broadcastForm').addEventListener('submit', function(e) {
-        const wilayah = document.querySelector('select[name="wilayah"]').value;
+        // PERBAIKAN: Selector name disesuaikan dengan yang baru
+        const wilayah = document.querySelector('select[name="wilayah_terdampak"]').value;
         const confirmMsg = `PERINGATAN!\n\nAnda akan mengirim pesan massal ke wilayah: ${wilayah.toUpperCase()}.\nApakah Anda yakin pesan sudah benar?`;
 
         if (!confirm(confirmMsg)) {
@@ -191,6 +192,7 @@
         const minutes = String(now.getMinutes()).padStart(2, '0');
         document.getElementById('digitalClock').textContent = `${hours}:${minutes}`;
     }
-    setInterval(updateClock, 10000); // Update tiap 10 detik
+    setInterval(updateClock, 10000);
+    updateClock(); // Jalankan langsung saat load
 </script>
 {% endblock %}

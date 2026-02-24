@@ -331,7 +331,6 @@ def reset_password_user(user_id):
         return jsonify({'status': 'error', 'message': 'Password minimal 6 karakter.'}), 400
 
     try:
-        # SINKRONISASI: Menggunakan password_hash sesuai models.py
         user.password_hash = generate_password_hash(new_password)
         db.session.commit()
         return jsonify({'status': 'success', 'message': f'Password untuk {user.nama} berhasil direset.'})
@@ -371,7 +370,7 @@ def export_pdf():
     return send_file(output, download_name="Laporan.pdf", as_attachment=True)
 
 
-# --- BROADCAST & PROFILE ---
+# --- BROADCAST & PROFILE (UPDATE OTOMATIS LANDING PAGE) ---
 @admin.route('/broadcast', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -379,14 +378,34 @@ def broadcast():
     from app import db
     from app.models import EmergencyAlert
     if request.method == 'POST':
-        db.session.add(EmergencyAlert(
-            tipe_bencana=request.form.get('tipe_bencana'),
-            pesan=request.form.get('pesan'),
-            wilayah_terdampak=request.form.get('wilayah_terdampak'),
-            level_bahaya=request.form.get('level_bahaya')
-        ))
-        db.session.commit()
-        flash('Broadcast terkirim!', 'success')
+        tipe = request.form.get('tipe_bencana')
+        pesan = request.form.get('pesan')
+        wilayah = request.form.get('wilayah_terdampak')
+        level = request.form.get('level_bahaya')
+
+        if not tipe or not wilayah or not pesan:
+            flash('Gagal! Tipe Bencana, Pesan, dan Wilayah wajib diisi.', 'danger')
+            return redirect(url_for('admin.broadcast'))
+
+        try:
+            # 1. Matikan semua alert aktif sebelumnya agar hanya yang terbaru yang muncul di Landing
+            EmergencyAlert.query.update({EmergencyAlert.is_active: False})
+
+            # 2. Tambah alert baru
+            new_alert = EmergencyAlert(
+                tipe_bencana=tipe,
+                pesan=pesan,
+                wilayah_terdampak=wilayah,
+                level_bahaya=level or 'waspada',
+                is_active=True  # Aktifkan untuk Landing Page
+            )
+            db.session.add(new_alert)
+            db.session.commit()
+            flash('Broadcast berhasil dikirim dan diupdate di Landing Page!', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Terjadi kesalahan database: {str(e)}', 'danger')
+
     return render_template('admin/broadcast.html', now=datetime.utcnow())
 
 
@@ -417,7 +436,6 @@ def edit_profile():
     if email: user.email = email
 
     if password:
-        # SINKRONISASI: Menggunakan password_hash
         user.password_hash = generate_password_hash(password)
 
     file = request.files.get('foto')
@@ -428,7 +446,6 @@ def edit_profile():
             os.makedirs(upload_path)
 
         file.save(os.path.join(upload_path, filename))
-        # SINKRONISASI: Menggunakan foto_profil sesuai models.py
         user.foto_profil = filename
 
     db.session.commit()

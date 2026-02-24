@@ -47,7 +47,7 @@
     .img-container {
         position: relative;
         overflow: hidden;
-        height: 240px; /* Menjaga tinggi tetap konsisten */
+        height: 240px;
         background: #f0f0f0;
     }
 
@@ -75,7 +75,7 @@
         justify-content: center;
         align-items: center;
         pointer-events: none;
-        z-index: 20; /* Lebih tinggi dari slider */
+        z-index: 20;
     }
 
     .stamp-sukses {
@@ -113,12 +113,6 @@
         font-size: 0.75rem;
         font-weight: 600;
         z-index: 25;
-    }
-
-    /* Controls Slider */
-    .carousel-control-prev, .carousel-control-next {
-        z-index: 30;
-        width: 15%;
     }
 
     /* Content Styling */
@@ -159,31 +153,8 @@
         border-top: 1px solid #f1f2f6;
         padding-top: 1rem;
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end; /* Tombol Detail geser ke kanan */
         align-items: center;
-    }
-
-    .btn-interact {
-        border: none;
-        background: #f8f9fa;
-        color: #636e72;
-        padding: 6px 14px;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        transition: 0.2s;
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-
-    .btn-interact:hover {
-        background: #e9ecef;
-        color: var(--jombang-blue);
-    }
-
-    .btn-interact.active {
-        background: #e7f1ff;
-        color: var(--jombang-blue);
     }
 
     .btn-detail {
@@ -297,17 +268,6 @@
                     </p>
 
                     <div class="interaction-bar">
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-interact" onclick="supportFeedReport({{ report.id }})" id="btn-support-{{ report.id }}">
-                                <i class="bi bi-hand-thumbs-up-fill"></i>
-                                <span id="feed-support-{{ report.id }}">{{ report.support_count or 0 }}</span>
-                            </button>
-
-                            <button class="btn btn-interact" onclick="shareReport({{ report.id }})" title="Bagikan Laporan">
-                                <i class="bi bi-share-fill"></i>
-                            </button>
-                        </div>
-
                         <a href="{{ url_for('main.view_report', report_id=report.id) }}" class="btn btn-detail btn-sm">
                             Detail <i class="bi bi-arrow-right-short"></i>
                         </a>
@@ -325,33 +285,7 @@
 </div>
 
 <script>
-    // FUNGSI JAVASCRIPT ASLI ANDA - TETAP LENGKAP
-    function supportFeedReport(id) {
-        const btn = document.getElementById(`btn-support-${id}`);
-
-        fetch(`/report/${id}/support`, {
-            method: 'POST',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(r => r.json())
-        .then(data => {
-            if(data.status === 'success') {
-                const countEl = document.getElementById(`feed-support-${id}`);
-                countEl.textContent = data.count;
-                btn.classList.add('active', 'animate__animated', 'animate__pulse');
-                btn.style.color = '#007bff';
-            } else {
-                alert(data.message);
-            }
-        })
-        .catch(() => alert('Silakan login untuk mendukung laporan ini.'));
-    }
-
-    function shareReport(id) {
-        const url = `${window.location.origin}/report/${id}`;
-        navigator.clipboard.writeText(url).then(() => {
-            alert('Link laporan berhasil disalin! Silakan bagikan ke WhatsApp atau media sosial.');
-        });
-    }
+    // Hanya menyisakan fungsi pendukung jika diperlukan di masa depan,
+    // namun elemen HTML pemicunya sudah dihapus.
 </script>
 {% endblock %}

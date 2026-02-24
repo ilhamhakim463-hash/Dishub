@@ -39,18 +39,20 @@ def index():
             'selesai': Report.query.filter_by(status_warna='hijau').count()
         }
 
-        # Menarik laporan untuk Pin Peta Landing (Lengkap agar tidak undefined di Popup)
+        # Menarik laporan untuk Pin Peta Landing
         reports_for_map = Report.query.filter(
             Report.latitude.isnot(None),
             Report.longitude.isnot(None),
             Report.is_archived == False
         ).all()
 
-    except Exception:
+        # PERBAIKAN: Mengambil hanya 1 alert terbaru yang berstatus AKTIF
+        latest_alert = EmergencyAlert.query.filter_by(is_active=True).order_by(EmergencyAlert.created_at.desc()).first()
+
+    except Exception as e:
         stats = {'total_reports': 0, 'total_warga': 0, 'darurat': 0, 'sedang': 0, 'selesai': 0}
         reports_for_map = []
-
-    latest_alert = EmergencyAlert.query.order_by(EmergencyAlert.created_at.desc()).first()
+        latest_alert = None
 
     return render_template('public/landing.html',
                            stats=stats,
@@ -63,9 +65,8 @@ def index():
 @main.route('/report/new', methods=['GET', 'POST'])
 @login_required
 def create_report():
-    """Endpoint untuk membuat laporan baru (NAMA: create_report agar tidak BuildError)"""
+    """Endpoint untuk membuat laporan baru"""
     if request.method == 'POST':
-        # Mengambil file dari form (foto_awal wajib, foto_2 & 3 opsional)
         f1 = request.files.get('foto_awal')
         f2 = request.files.get('foto_2')
         f3 = request.files.get('foto_3')
@@ -82,14 +83,13 @@ def create_report():
                 longitude=request.form.get('longitude'),
                 kategori=request.form.get('kategori'),
                 user_id=current_user.id,
-                status_warna='biru',  # Default awal: Menunggu/Proses
+                status_warna='biru',
                 foto_awal=save_report_photo(f1),
                 foto_2=save_report_photo(f2),
                 foto_3=save_report_photo(f3),
                 created_at=datetime.now()
             )
 
-            # Tambahan otomatis poin pelapor (Memberikan reward kontribusi)
             current_user.poin_warga = (current_user.poin_warga or 0) + 5
 
             db.session.add(new_report)
@@ -108,10 +108,7 @@ def create_report():
 # --- FEED PUBLIK & LIVE MAP DATA ---
 @main.route('/feed')
 def feed():
-    # Menampilkan laporan yang belum diarsip
     reports = Report.query.filter_by(is_archived=False).order_by(Report.created_at.desc()).all()
-
-    # Data Peta Feed (Dibuat lengkap untuk marker JS)
     map_data = [{
         'id': r.id,
         'lat': r.latitude,
@@ -143,7 +140,7 @@ def view_report(report_id):
                            user_has_supported=user_has_supported)
 
 
-# --- FITUR DUKUNG (SUPPORT) - AJAX COMPATIBLE ---
+# --- FITUR DUKUNG (SUPPORT) ---
 @main.route('/report/<int:report_id>/support', methods=['POST'])
 @login_required
 def support_report(report_id):
@@ -184,11 +181,10 @@ def add_comment(report_id):
         return jsonify({'status': 'error'}), 500
 
 
-# --- DASHBOARD MULTI-ROLE (SINKRONISASI BENTO CARD) ---
+# --- DASHBOARD MULTI-ROLE ---
 @main.route('/dashboard')
 @login_required
 def dashboard():
-    # Role Admin: Melihat statistik Global
     if current_user.role == 'admin':
         stats = {
             'total_reports': Report.query.count(),
@@ -200,7 +196,6 @@ def dashboard():
         recent_reports = Report.query.order_by(Report.created_at.desc()).limit(10).all()
         return render_template('admin/dashboard.html', stats=stats, recent_reports=recent_reports, now=datetime.now())
 
-    # Role Warga/Mahasantri: Melihat statistik Personal
     user_stats = {
         'total': Report.query.filter_by(user_id=current_user.id).count(),
         'proses': Report.query.filter_by(user_id=current_user.id).filter(
@@ -212,7 +207,7 @@ def dashboard():
     return render_template('user/dashboard.html', stats=user_stats, reports=my_reports)
 
 
-# --- API DATA PETA (SINKRONISASI REAL-TIME UNTUK JS) ---
+# --- API DATA PETA ---
 @main.route('/api/map-markers')
 def map_markers():
     reports = Report.query.filter(Report.latitude.isnot(None), Report.is_archived == False).all()
