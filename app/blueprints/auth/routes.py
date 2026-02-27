@@ -2,11 +2,24 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app import db
 from app.models import User
 from flask_login import login_user, logout_user, current_user, login_required
-from werkzeug.security import check_password_hash  # Pastikan import ini ada
+from werkzeug.security import check_password_hash
+from datetime import datetime
 import logging
 
 auth = Blueprint('auth', __name__)
 
+# --- FUNGSI PELACAK ONLINE (TIMPAAN DARI FOTO) ---
+@auth.before_app_request
+def before_request():
+    """Memperbarui waktu aktivitas terakhir jika user sedang login"""
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+# --- ROUTES OTENTIKASI ---
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
@@ -44,7 +57,6 @@ def register():
             is_active=True,
             poin_warga=0
         )
-        # Menggunakan method set_password dari model Anda
         new_user.set_password(password)
 
         try:
@@ -76,16 +88,17 @@ def login():
             (User.email == login_id)
         ).first()
 
-        # LOGIKA LOGIN: Cek keberadaan user dan kecocokan password hash
-        # Kita gunakan check_password_hash langsung atau method user.check_password
         if user and user.check_password(password):
-
             # --- PROTEKSI SISTEM BLOKIR ---
             if not user.is_active:
                 flash('Akses Ditolak! Akun Anda telah dinonaktifkan oleh Admin.', 'danger')
                 return redirect(url_for('auth.login'))
 
             login_user(user, remember=remember)
+
+            # Update last_seen langsung saat login
+            user.last_seen = datetime.utcnow()
+            db.session.commit()
 
             # Redirect berdasarkan Role
             if user.role == 'admin':
@@ -110,5 +123,4 @@ def logout():
 
 @auth.route('/reset-password', methods=['GET', 'POST'])
 def reset_password():
-    # Route ini untuk halaman "Lupa Password" warga (mengirim OTP/WA)
     return render_template('auth/reset_password.html')

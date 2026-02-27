@@ -30,7 +30,9 @@
                     <div>
                         <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Online</small>
                         <span class="h4 fw-bold mb-0 text-success">
-                            {{ users|selectattr('is_online', 'defined') and users|selectattr('is_online', 'equalto', true)|list|length or 0 }}
+                            {# Menghitung user yang sedang online berdasarkan property is_online #}
+                            {% set online_count = users|selectattr('is_online', 'equalto', true)|list|length %}
+                            {{ online_count }}
                         </span>
                     </div>
                 </div>
@@ -44,7 +46,8 @@
                     <div>
                         <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Offline</small>
                         <span class="h4 fw-bold mb-0 text-secondary">
-                            {{ users|selectattr('is_online', 'defined') and users|selectattr('is_online', 'equalto', false)|list|length or 0 }}
+                            {# Sisanya dianggap offline #}
+                            {{ users|length - online_count }}
                         </span>
                     </div>
                 </div>
@@ -166,13 +169,6 @@
                 <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-4">
-                    <div class="avatar-circle-main bg-primary text-white me-3 d-flex align-items-center justify-content-center fw-bold" id="logAvatar">?</div>
-                    <div>
-                        <h6 class="fw-bold mb-0 text-dark" id="logUserName">---</h6>
-                        <small class="text-muted">Riwayat aktivitas terbaru</small>
-                    </div>
-                </div>
                 <div id="logContent" style="max-height: 350px; overflow-y: auto;" class="custom-scrollbar">
                     <div class="text-center py-4 text-muted">Sedang memuat data...</div>
                 </div>
@@ -234,48 +230,19 @@
     .bg-success-soft { background: var(--success-soft); }
     .bg-danger-soft { background: var(--danger-soft); }
     .bg-light-blue { background-color: #f8fbff; }
-
-    .text-gradient-primary {
-        background: linear-gradient(90deg, #0d6efd, #0dcaf0);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .stat-card { border-radius: 15px; border-left: 4px solid #0d6efd !important; min-width: 160px; }
-    .stat-card-online { border-radius: 15px; border-left: 4px solid #28a745 !important; min-width: 140px; }
-    .stat-card-offline { border-radius: 15px; border-left: 4px solid #6c757d !important; min-width: 140px; }
-
+    .text-gradient-primary { background: linear-gradient(90deg, #0d6efd, #0dcaf0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .stat-card { border-radius: 15px; border-left: 4px solid #0d6efd !important; }
+    .stat-card-online { border-radius: 15px; border-left: 4px solid #28a745 !important; }
+    .stat-card-offline { border-radius: 15px; border-left: 4px solid #6c757d !important; }
     .main-table-card { border-radius: 20px; }
     .avatar-circle-main { width: 42px; height: 42px; border-radius: 12px; font-size: 1.1rem; }
-
-    .badge-status {
-        padding: 6px 14px; border-radius: 10px; font-size: 0.75rem; font-weight: 700;
-        display: inline-flex; align-items: center;
-    }
-
-    .btn-action {
-        width: 38px; height: 38px; border-radius: 10px; border: none;
-        background: white; transition: 0.2s all;
-        display: inline-flex; align-items: center; justify-content: center;
-    }
+    .badge-status { padding: 6px 14px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; }
+    .btn-action { width: 38px; height: 38px; border-radius: 10px; border: none; background: white; transition: 0.2s all; display: inline-flex; align-items: center; justify-content: center; }
     .btn-action:hover { transform: translateY(-2px); filter: brightness(0.95); }
-
     .activity-trigger { cursor: pointer; padding: 5px; border-radius: 8px; transition: 0.2s; }
     .activity-trigger:hover { background: rgba(0,0,0,0.03); }
-
-    .log-item { border-left: 3px solid #dee2e6; padding-left: 20px; margin-bottom: 20px; position: relative; }
-    .log-item::before { content: ''; position: absolute; left: -8px; top: 0; width: 13px; height: 13px; border-radius: 50%; background: white; border: 3px solid #dee2e6; }
-    .log-item.online { border-left-color: #28a745; }
-    .log-item.online::before { border-color: #28a745; }
-    .log-item.offline { border-left-color: #6c757d; }
-    .log-item.offline::before { border-color: #6c757d; }
-
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #e0e0e0; border-radius: 10px; }
-
-    @media (max-width: 991px) {
-        .sticky-col { position: sticky; right: 0; background-color: white !important; box-shadow: -10px 0 15px rgba(0,0,0,0.05); z-index: 5; }
-    }
 </style>
 
 <script>
@@ -296,27 +263,14 @@ async function submitResetPassword() {
     const userId = document.getElementById('resetUserId').value;
     const passwordValue = document.getElementById('newPasswordInput').value;
     const btnSubmit = document.getElementById('btnSubmitReset');
-
-    if(!passwordValue || passwordValue.length < 6) {
-        alert('Password minimal 6 karakter');
-        return;
-    }
-
+    if(!passwordValue || passwordValue.length < 6) { alert('Password minimal 6 karakter'); return; }
     btnSubmit.disabled = true;
     btnSubmit.innerText = "Memproses...";
-
     try {
         const formData = new FormData();
-        // Mengirimkan dengan key 'password' sesuai instruksi route sebelumnya
         formData.append('password', passwordValue);
-
-        const response = await fetch(`/admin/user/reset-password/${userId}`, {
-            method: 'POST',
-            body: formData
-        });
-
+        const response = await fetch(`/admin/user/reset-password/${userId}`, { method: 'POST', body: formData });
         const result = await response.json();
-
         if (response.ok && result.status === 'success') {
             alert(result.message);
             resetModal.hide();
@@ -329,7 +283,6 @@ async function submitResetPassword() {
     } catch (e) {
         alert('Gagal menghubungi server');
         btnSubmit.disabled = false;
-        btnSubmit.innerText = "Simpan Perubahan";
     }
 }
 
@@ -339,30 +292,6 @@ async function toggleUser(id) {
         const res = await fetch(`/admin/user/${id}/toggle`, { method: 'POST' });
         if(res.ok) location.reload();
     } catch (e) { alert('Gagal memproses data'); }
-}
-
-function viewActivityLog(userId, userName) {
-    document.getElementById('logUserName').innerText = userName;
-    document.getElementById('logAvatar').innerText = userName.charAt(0).toUpperCase();
-    document.getElementById('logContent').innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary spinner-border-sm"></div></div>';
-    activityModal.show();
-
-    fetch(`/admin/user/${userId}/logs`)
-        .then(res => res.json())
-        .then(data => {
-            let html = '';
-            if (data.logs && data.logs.length > 0) {
-                data.logs.forEach(log => {
-                    const typeClass = log.type === 'LOGIN' ? 'online' : 'offline';
-                    html += `<div class="log-item ${typeClass}"><div class="fw-bold text-dark small">${log.message}</div><small class="text-muted">${log.timestamp}</small></div>`;
-                });
-            } else {
-                html = '<div class="text-center py-4 text-muted">Belum ada riwayat aktivitas.</div>';
-            }
-            document.getElementById('logContent').innerHTML = html;
-        }).catch(() => {
-            document.getElementById('logContent').innerHTML = '<div class="text-center py-4 text-danger">Gagal memuat data.</div>';
-        });
 }
 
 function toggleVisibility() {

@@ -8,6 +8,7 @@ import os
 import random
 import pandas as pd
 from io import BytesIO
+import re
 
 # Import untuk PDF
 from reportlab.lib.pagesizes import letter, landscape
@@ -29,7 +30,7 @@ def admin_required(f):
     return decorated_function
 
 
-# --- CONTEXT PROCESSOR ---
+# --- CONTEXT PROCESSOR (PENTING UNTUK SIDEBAR SINKRON) ---
 @admin.app_context_processor
 def inject_sidebar_categories():
     from app.models import Category
@@ -40,20 +41,26 @@ def inject_sidebar_categories():
         return dict(sidebar_categories=[])
 
 
-# --- DASHBOARD ---
+# --- DASHBOARD (PERBAIKAN FILTER SINKRON) ---
 @admin.route('/dashboard')
 @login_required
 @admin_required
 def dashboard():
-    from app.models import Report, User
+    from app.models import Report, User, Category
     from sqlalchemy import func
 
     f_kategori = request.args.get('kategori', '').strip()
     f_status = request.args.get('status', '').strip()
 
+    # Ambil kategori dari DB untuk dropdown filter agar sinkron
+    db_categories = Category.query.order_by(Category.name.asc()).all()
+
     query = Report.query.filter_by(is_archived=False)
+
+    # Perbaikan: Filter berdasarkan nama kategori yang ada di DB
     if f_kategori and f_kategori != 'Semua Kategori':
-        query = query.filter(Report.kategori.ilike(f_kategori))
+        query = query.filter(Report.kategori == f_kategori)
+
     if f_status and f_status != 'Semua Status':
         query = query.filter_by(status_warna=f_status)
 
@@ -93,8 +100,15 @@ def dashboard():
     except Exception:
         weekly_data, days = [0] * 7, ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']
 
-    return render_template('admin/dashboard.html', stats=stats, reports=recent_reports, recent_reports=recent_reports,
-                           all_reports=all_reports, weekly_data=weekly_data, days=days, now=datetime.utcnow())
+    return render_template('admin/dashboard.html',
+                           stats=stats,
+                           reports=recent_reports,
+                           recent_reports=recent_reports,
+                           all_reports=all_reports,
+                           categories=db_categories,
+                           weekly_data=weekly_data,
+                           days=days,
+                           now=datetime.utcnow())
 
 
 # --- API MAPS ---
@@ -130,7 +144,6 @@ def reports_map_data():
             })
         except Exception:
             continue
-
     return jsonify(data)
 
 
@@ -142,16 +155,25 @@ def reports_map_data():
 def manage_categories():
     from app import db
     from app.models import Category
-    import re
+
     if request.method == 'POST':
-        nama = request.form.get('nama')
+        nama = request.form.get('nama', '').strip()
         if nama:
-            slug = re.sub(r'[-\s]+', '-', re.sub(r'[^\w\s-]', '', nama).strip().lower())
-            if not Category.query.filter_by(slug=slug).first():
-                db.session.add(Category(name=nama, slug=slug))
+            slug = re.sub(r'[-\s]+', '-', re.sub(r'[^\w\s-]', '', nama).lower())
+            existing_cat = Category.query.filter((Category.slug == slug) | (Category.name == nama)).first()
+
+            if not existing_cat:
+                new_cat = Category(name=nama, slug=slug)
+                db.session.add(new_cat)
                 db.session.commit()
-                flash('Kategori ditambahkan!', 'success')
+                flash(f'Kategori "{nama}" berhasil ditambahkan!', 'success')
+            else:
+                flash(f'Kategori "{nama}" sudah ada.', 'warning')
+        else:
+            flash('Nama kategori tidak boleh kosong.', 'danger')
+
         return redirect(url_for('admin.master_kategori'))
+
     cats = Category.query.order_by(Category.name.asc()).all()
     return render_template('admin/categories.html', categories=cats, now=datetime.utcnow())
 
@@ -163,9 +185,14 @@ def delete_category(cat_id):
     from app import db
     from app.models import Category
     cat = Category.query.get_or_404(cat_id)
-    db.session.delete(cat)
-    db.session.commit()
-    flash('Kategori dihapus.', 'success')
+    try:
+        db.session.delete(cat)
+        db.session.commit()
+        flash('Kategori berhasil dihapus.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Gagal menghapus kategori. Mungkin masih digunakan dalam laporan.', 'danger')
+
     return redirect(url_for('admin.master_kategori'))
 
 
@@ -208,7 +235,6 @@ def toggle_archive(report_id, action):
     return jsonify({'status': 'success', 'message': f'Berhasil di-{action}'})
 
 
-# --- MODERASI & UPDATE ---
 @admin.route('/report/<int:report_id>')
 @login_required
 @admin_required
@@ -282,7 +308,6 @@ def delete_report(report_id):
     return redirect(url_for('admin.reports'))
 
 
-# --- USER MANAGEMENT ---
 @admin.route('/users')
 @login_required
 @admin_required
@@ -317,7 +342,6 @@ def delete_user(user_id):
     return redirect(url_for('admin.users'))
 
 
-# --- RESET PASSWORD USER ---
 @admin.route('/user/reset-password/<int:user_id>', methods=['POST'])
 @login_required
 @admin_required
@@ -326,10 +350,8 @@ def reset_password_user(user_id):
     from app.models import User
     user = User.query.get_or_404(user_id)
     new_password = request.form.get('password')
-
     if not new_password or len(new_password) < 6:
         return jsonify({'status': 'error', 'message': 'Password minimal 6 karakter.'}), 400
-
     try:
         user.password_hash = generate_password_hash(new_password)
         db.session.commit()
@@ -339,7 +361,6 @@ def reset_password_user(user_id):
         return jsonify({'status': 'error', 'message': 'Gagal mereset password.'}), 500
 
 
-# --- EXPORT ---
 @admin.route('/export/excel')
 @login_required
 @admin_required
@@ -370,7 +391,6 @@ def export_pdf():
     return send_file(output, download_name="Laporan.pdf", as_attachment=True)
 
 
-# --- BROADCAST & PROFILE (UPDATE OTOMATIS LANDING PAGE) ---
 @admin.route('/broadcast', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -382,30 +402,24 @@ def broadcast():
         pesan = request.form.get('pesan')
         wilayah = request.form.get('wilayah_terdampak')
         level = request.form.get('level_bahaya')
-
         if not tipe or not wilayah or not pesan:
             flash('Gagal! Tipe Bencana, Pesan, dan Wilayah wajib diisi.', 'danger')
             return redirect(url_for('admin.broadcast'))
-
         try:
-            # 1. Matikan semua alert aktif sebelumnya agar hanya yang terbaru yang muncul di Landing
             EmergencyAlert.query.update({EmergencyAlert.is_active: False})
-
-            # 2. Tambah alert baru
             new_alert = EmergencyAlert(
                 tipe_bencana=tipe,
                 pesan=pesan,
                 wilayah_terdampak=wilayah,
                 level_bahaya=level or 'waspada',
-                is_active=True  # Aktifkan untuk Landing Page
+                is_active=True
             )
             db.session.add(new_alert)
             db.session.commit()
-            flash('Broadcast berhasil dikirim dan diupdate di Landing Page!', 'success')
+            flash('Broadcast berhasil dikirim!', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'Terjadi kesalahan database: {str(e)}', 'danger')
-
+            flash(f'Terjadi kesalahan: {str(e)}', 'danger')
     return render_template('admin/broadcast.html', now=datetime.utcnow())
 
 
@@ -416,38 +430,27 @@ def profile():
     return render_template('admin/profile.html', now=datetime.utcnow())
 
 
-# --- EDIT PROFILE ADMIN ---
 @admin.route('/profile/edit', methods=['POST'])
 @login_required
 @admin_required
 def edit_profile():
     from app import db
     from app.models import User
-
     user = User.query.get(current_user.id)
-    if not user:
-        abort(404)
-
+    if not user: abort(404)
     nama = request.form.get('nama')
     email = request.form.get('email')
     password = request.form.get('password')
-
     if nama: user.nama = nama
     if email: user.email = email
-
-    if password:
-        user.password_hash = generate_password_hash(password)
-
+    if password: user.password_hash = generate_password_hash(password)
     file = request.files.get('foto')
     if file and file.filename != '':
         filename = secure_filename(f"admin_{user.id}_{file.filename}")
         upload_path = os.path.join('app', 'static', 'uploads', 'profiles')
-        if not os.path.exists(upload_path):
-            os.makedirs(upload_path)
-
+        if not os.path.exists(upload_path): os.makedirs(upload_path)
         file.save(os.path.join(upload_path, filename))
         user.foto_profil = filename
-
     db.session.commit()
-    flash('Profil berhasil diperbarui!', 'success')
+    flash('Profil diperbarui!', 'success')
     return redirect(url_for('admin.profile'))
