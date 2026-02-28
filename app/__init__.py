@@ -142,11 +142,11 @@ def create_app(config_name='development'):
     @user_bp.route('/dashboard')
     @login_required
     def dashboard():
-        if current_user.role == 'admin': return redirect(url_for('admin.dashboard'))
+        # JIKA ADMIN MASUK KE SINI, LEMPAR KE DASHBOARD ADMIN
+        if current_user.role == 'admin':
+            return redirect(url_for('admin.dashboard'))
 
-        # MENGAMBIL DATA LAPORAN USER LOGIN
         user_reports = Report.query.filter_by(user_id=current_user.id).order_by(Report.created_at.desc()).all()
-
         stats = {
             'total': len(user_reports),
             'pending': Report.query.filter_by(user_id=current_user.id, is_approved=False).count(),
@@ -229,6 +229,7 @@ def create_app(config_name='development'):
         app.register_blueprint(user_bp, url_prefix='/user')
 
     # --- 3. EXTERNAL BLUEPRINTS (Auth & Admin) ---
+    # Memuat blueprint dari folder blueprints yang terlihat di gambar Anda
     try:
         from app.blueprints.auth.routes import auth as auth_blueprint
         if 'auth' not in app.blueprints:

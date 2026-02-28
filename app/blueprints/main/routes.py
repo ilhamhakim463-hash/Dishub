@@ -122,7 +122,7 @@ def feed():
     return render_template('public/feed.html', reports=reports, map_data=map_data)
 
 
-# --- DETAIL LAPORAN & KOMENTAR ---
+# --- DETAIL LAPORAN & KOMENTAR (RUTE PUBLIK) ---
 @main.route('/report/<int:report_id>')
 def view_report(report_id):
     report = Report.query.get_or_404(report_id)
@@ -186,15 +186,7 @@ def add_comment(report_id):
 @login_required
 def dashboard():
     if current_user.role == 'admin':
-        stats = {
-            'total_reports': Report.query.count(),
-            'darurat': Report.query.filter_by(status_warna='merah').count(),
-            'sedang': Report.query.filter_by(status_warna='kuning').count(),
-            'selesai': Report.query.filter_by(status_warna='hijau').count(),
-            'total_warga': User.query.filter(User.role != 'admin').count()
-        }
-        recent_reports = Report.query.order_by(Report.created_at.desc()).limit(10).all()
-        return render_template('admin/dashboard.html', stats=stats, recent_reports=recent_reports, now=datetime.now())
+        return redirect(url_for('admin.dashboard'))
 
     user_stats = {
         'total': Report.query.filter_by(user_id=current_user.id).count(),

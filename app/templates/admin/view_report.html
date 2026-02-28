@@ -77,7 +77,6 @@
         </div>
 
         <div class="col-lg-4">
-
             {# MODERASI AWAL #}
             {% if not report.is_approved %}
             <div class="card border-0 shadow-sm mb-4 border-start border-warning border-4">
@@ -96,15 +95,14 @@
             </div>
             {% endif %}
 
-            {# UPDATE PROGRESS & FEEDBACK (SESUAI GAMBAR DROPDOWN) #}
+            {# UPDATE PROGRESS & FEEDBACK #}
             {% if report.is_approved and report.status_warna != 'biru' %}
             <div class="card border-0 shadow-sm mb-4 border-start border-primary border-4">
                 <div class="card-header bg-white py-3">
-                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi- megaphone me-2"></i>Update Progres & Feedback</h6>
+                    <h6 class="mb-0 fw-bold text-primary"><i class="bi bi-megaphone me-2"></i>Update Progres & Feedback</h6>
                 </div>
                 <div class="card-body">
                     <form action="{{ url_for('admin.update_status', report_id=report.id) }}" method="POST" enctype="multipart/form-data">
-
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted text-uppercase">Status Laporan</label>
                             <select name="status_warna" class="form-select border-2 shadow-sm py-2">
@@ -113,17 +111,14 @@
                                 <option value="biru" {% if report.status_warna == 'biru' %}selected{% endif %}>🔵 Selesai (Biru)</option>
                             </select>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted text-uppercase">Catatan Untuk Warga</label>
                             <textarea name="catatan_admin" class="form-control border-2 shadow-sm" rows="3" placeholder="Contoh: Petugas sedang menuju lokasi..."></textarea>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-muted text-uppercase">Foto Bukti (Opsional)</label>
                             <input type="file" name="bukti_foto" class="form-control border-2 shadow-sm">
                         </div>
-
                         <div class="d-grid mt-4">
                             <button type="submit" class="btn btn-primary fw-bold py-2 shadow">
                                 <i class="bi bi-send-fill me-2"></i>Kirim Update Progres
@@ -195,10 +190,13 @@ function loadCCTV() {
     const container = document.getElementById('cctv-container');
     const indicator = document.getElementById('live-indicator');
     container.innerHTML = '<div class="spinner-border text-primary" role="status"></div>';
+
+    // Perbaikan: Menggunakan template literal yang benar dengan backticks (`)
+    const lat = "{{ report.latitude }}";
+    const lng = "{{ report.longitude }}";
+
     setTimeout(() => {
-        const lat = "{{ report.latitude }}";
-        const lng = "{{ report.longitude }}";
-        container.innerHTML = `<iframe src="https://maps.google.com/maps?q=${lat},${lng}&t=k&z=19&ie=UTF8&iwloc=&output=embed"></iframe>`;
+        container.innerHTML = `<iframe src="https://maps.google.com/maps?q=$${lat},${lng}&t=k&z=19&ie=UTF8&iwloc=&output=embed"></iframe>`;
         indicator.style.display = 'block';
     }, 1200);
 }

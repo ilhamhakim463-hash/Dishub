@@ -30,7 +30,6 @@
                     <div>
                         <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Online</small>
                         <span class="h4 fw-bold mb-0 text-success">
-                            {# Menghitung user yang sedang online berdasarkan property is_online #}
                             {% set online_count = users|selectattr('is_online', 'equalto', true)|list|length %}
                             {{ online_count }}
                         </span>
@@ -46,7 +45,6 @@
                     <div>
                         <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.65rem;">Offline</small>
                         <span class="h4 fw-bold mb-0 text-secondary">
-                            {# Sisanya dianggap offline #}
                             {{ users|length - online_count }}
                         </span>
                     </div>
@@ -121,7 +119,9 @@
                                     {{ 'Sedang Aktif' if user.is_online else 'Offline' }}
                                 </div>
                                 <small class="text-xs text-muted" style="font-size: 0.7rem;">
-                                    <i class="bi bi-clock me-1"></i>{{ user.last_seen.strftime('%d/%m %H:%M') if user.last_seen else 'Belum login' }}
+                                    <i class="bi bi-clock me-1"></i>
+                                    {# FORMAT PRESISI: Tanggal/Bulan Jam:Menit:Detik #}
+                                    {{ user.last_seen.strftime('%d/%m %H:%M:%S') if user.last_seen else 'Belum login' }}
                                 </small>
                             </div>
                         </td>
@@ -283,6 +283,40 @@ async function submitResetPassword() {
     } catch (e) {
         alert('Gagal menghubungi server');
         btnSubmit.disabled = false;
+    }
+}
+
+async function viewActivityLog(id, nama) {
+    const logContent = document.getElementById('logContent');
+    logContent.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat log aktivitas...</div>';
+    activityModal.show();
+
+    try {
+        const response = await fetch(`/admin/user/activity-log/${id}`);
+        const result = await response.json();
+
+        if (result.status === 'success' && result.logs && result.logs.length > 0) {
+            let html = '<div class="list-group list-group-flush">';
+            result.logs.forEach(log => {
+                const statusColor = log.status.toLowerCase() === 'online' ? 'text-success' : 'text-danger';
+                html += `
+                    <div class="list-group-item border-0 px-0 py-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-circle-fill ${statusColor} me-2" style="font-size: 0.6rem;"></i>
+                                <span class="fw-bold text-dark">${log.status}</span>
+                            </div>
+                            <small class="text-muted fw-medium">${log.timestamp_detail}</small>
+                        </div>
+                    </div>`;
+            });
+            html += '</div>';
+            logContent.innerHTML = html;
+        } else {
+            logContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-info-circle d-block fs-2 mb-2"></i>Belum ada riwayat aktivitas tercatat.</div>';
+        }
+    } catch (e) {
+        logContent.innerHTML = '<div class="text-center py-5 text-danger">Gagal memuat data. Pastikan route API sudah benar.</div>';
     }
 }
 
