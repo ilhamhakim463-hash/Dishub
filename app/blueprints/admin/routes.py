@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, jsonify, send_file
+from flask import Blueprint, render_template, abort, request, redirect, url_for, flash, jsonify, send_file, current_app
 from flask_login import login_required, current_user
 from functools import wraps
 from datetime import datetime, timedelta
@@ -18,6 +18,10 @@ from reportlab.lib import colors
 
 admin = Blueprint('admin', __name__)
 
+# --- VARIABEL GLOBAL UNTUK RUNNING TEXT ---
+# Ini yang akan menampung teks dari form broadcast agar muncul di navbar
+latest_running_text = "Selamat Datang di Layanan LaporPak! Dishub Jombang"
+
 
 # --- DECORATOR ---
 def admin_required(f):
@@ -32,13 +36,20 @@ def admin_required(f):
 
 # --- CONTEXT PROCESSOR ---
 @admin.app_context_processor
-def inject_sidebar_categories():
+def inject_global_data():
     from app.models import Category
     try:
         all_cats = Category.query.order_by(Category.name.asc()).all()
-        return dict(sidebar_categories=all_cats)
+        # 'running_text' inilah yang dipanggil di navbar.html dengan {{ running_text }}
+        return dict(
+            sidebar_categories=all_cats,
+            running_text=latest_running_text
+        )
     except Exception:
-        return dict(sidebar_categories=[])
+        return dict(
+            sidebar_categories=[],
+            running_text=latest_running_text
+        )
 
 
 # --- DASHBOARD ---
@@ -384,24 +395,39 @@ def export_pdf():
     return send_file(output, download_name=f"Rekap_{datetime.now().strftime('%Y%m%d')}.pdf", as_attachment=True)
 
 
-# --- OTHERS ---
+# --- BROADCAST & RUNNING TEXT (PENGHUBUNG FOTO 1 & 2) ---
 @admin.route('/broadcast', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def broadcast():
     from app import db
     from app.models import EmergencyAlert
+    global latest_running_text  # Gunakan variabel global
+
     if request.method == 'POST':
+        # Ambil data dari form foto 1
+        tipe = request.form.get('tipe_bencana')
+        wilayah = request.form.get('wilayah_terdampak')
+        pesan_tambahan = request.form.get('pesan')
+
+        # LOGIKA: Update Running Text (Foto 2) secara otomatis
+        # Kita susun teks yang akan muncul di marquee navbar
+        latest_running_text = f"Peringatan Dini: {tipe} di wilayah {wilayah}. Pesan: {pesan_tambahan}"
+
+        # Simpan ke Database EmergencyAlert (opsional/tetap dipertahankan)
         new_alert = EmergencyAlert(
-            tipe_bencana=request.form.get('tipe_bencana'),
-            pesan=request.form.get('pesan'),
-            wilayah_terdampak=request.form.get('wilayah_terdampak'),
+            tipe_bencana=tipe,
+            pesan=pesan_tambahan,
+            wilayah_terdampak=wilayah,
             level_bahaya=request.form.get('level_bahaya') or 'bahaya',
             created_at=datetime.utcnow()
         )
         db.session.add(new_alert)
         db.session.commit()
-        flash('Peringatan Dini Berhasil Disiarkan!', 'success')
+
+        flash('Peringatan Dini Berhasil Disiarkan dan Navbar telah diperbarui!', 'success')
+        return redirect(url_for('admin.broadcast'))
+
     return render_template('admin/broadcast.html', now=datetime.utcnow())
 
 
