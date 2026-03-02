@@ -19,7 +19,6 @@ from reportlab.lib import colors
 admin = Blueprint('admin', __name__)
 
 # --- VARIABEL GLOBAL UNTUK RUNNING TEXT ---
-# Ini yang akan menampung teks dari form broadcast agar muncul di navbar
 latest_running_text = "Selamat Datang di Layanan LaporPak! Dishub Jombang"
 
 
@@ -34,21 +33,32 @@ def admin_required(f):
     return decorated_function
 
 
-# --- CONTEXT PROCESSOR ---
+# --- CONTEXT PROCESSOR (SINKRONISASI DATA KE SEMUA HALAMAN) ---
 @admin.app_context_processor
 def inject_global_data():
-    from app.models import Category
+    from app.models import Category, Report, User
     try:
         all_cats = Category.query.order_by(Category.name.asc()).all()
-        # 'running_text' inilah yang dipanggil di navbar.html dengan {{ running_text }}
+
+        # Hitung statistik secara global agar sama di Landing Page & Admin
+        total_lap = Report.query.filter_by(is_archived=False).count()
+        total_sel = Report.query.filter_by(status_warna='biru', is_archived=False).count()
+        total_usr = User.query.filter_by(role='user').count()
+
         return dict(
             sidebar_categories=all_cats,
-            running_text=latest_running_text
+            running_text=latest_running_text,
+            global_total_laporan=total_lap,
+            global_total_selesai=total_sel,
+            global_total_warga=total_usr
         )
     except Exception:
         return dict(
             sidebar_categories=[],
-            running_text=latest_running_text
+            running_text=latest_running_text,
+            global_total_laporan=0,
+            global_total_selesai=0,
+            global_total_warga=0
         )
 
 
@@ -81,6 +91,7 @@ def dashboard():
         Report.is_archived == False
     ).count()
 
+    # Statistik untuk Dashboard Admin
     stats = {
         'total_reports': Report.query.filter_by(is_archived=False).count(),
         'darurat_reports': Report.query.filter_by(status_warna='merah', is_archived=False).count(),
@@ -395,26 +406,22 @@ def export_pdf():
     return send_file(output, download_name=f"Rekap_{datetime.now().strftime('%Y%m%d')}.pdf", as_attachment=True)
 
 
-# --- BROADCAST & RUNNING TEXT (PENGHUBUNG FOTO 1 & 2) ---
+# --- BROADCAST & RUNNING TEXT ---
 @admin.route('/broadcast', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def broadcast():
     from app import db
     from app.models import EmergencyAlert
-    global latest_running_text  # Gunakan variabel global
+    global latest_running_text
 
     if request.method == 'POST':
-        # Ambil data dari form foto 1
         tipe = request.form.get('tipe_bencana')
         wilayah = request.form.get('wilayah_terdampak')
         pesan_tambahan = request.form.get('pesan')
 
-        # LOGIKA: Update Running Text (Foto 2) secara otomatis
-        # Kita susun teks yang akan muncul di marquee navbar
         latest_running_text = f"Peringatan Dini: {tipe} di wilayah {wilayah}. Pesan: {pesan_tambahan}"
 
-        # Simpan ke Database EmergencyAlert (opsional/tetap dipertahankan)
         new_alert = EmergencyAlert(
             tipe_bencana=tipe,
             pesan=pesan_tambahan,

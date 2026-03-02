@@ -62,6 +62,7 @@ def create_app(config_name='development'):
     @main_bp.route('/')
     def index():
         try:
+            # 1. SINKRONISASI STATISTIK UTAMA
             stats = {
                 'total_reports': Report.query.filter_by(is_approved=True).count(),
                 'total_users': User.query.filter_by(role='user').count(),
@@ -70,10 +71,21 @@ def create_app(config_name='development'):
                     Report.status_warna.in_(['biru', 'hijau'])
                 ).count()
             }
+
+            # 2. AMBIL AKTIVITAS TERAKHIR (FIX ERROR UNDEFINED)
+            # Mengambil 5 user terakhir yang aktif berdasarkan last_seen
+            activities = User.query.order_by(User.last_seen.desc()).limit(5).all()
+
         except Exception as e:
             app.logger.error(f"Stats Error: {e}")
             stats = {'total_reports': 0, 'total_users': 0, 'selesai_reports': 0}
-        return render_template('public/landing.html', stats=stats)
+            activities = []
+
+        # WAJIB memasukkan user_activities=activities agar terbaca oleh template landing.html
+        return render_template('public/landing.html',
+                               stats=stats,
+                               user_activities=activities,
+                               now=datetime.now())
 
     @main_bp.route('/api/reports-map-data')
     def reports_map_data():
@@ -82,15 +94,18 @@ def create_app(config_name='development'):
         for r in reports:
             try:
                 if r.latitude and r.longitude:
-                    urg_map = {'merah': '1', 'kuning': '2'}
-                    urgency_level = urg_map.get(r.status_warna, '3')
+                    # Map warna ke level urgency untuk frontend peta
+                    color_map = {'merah': '1', 'kuning': '2', 'biru': '3', 'hijau': '3'}
+                    urgency_level = color_map.get(r.status_warna, '3')
                     data.append({
                         'id': r.id,
                         'judul': r.judul,
                         'latitude': float(r.latitude),
                         'longitude': float(r.longitude),
                         'urgency': urgency_level,
-                        'kategori': r.kategori or "Umum"
+                        'kategori': r.kategori or "Umum",
+                        'status_warna': r.status_warna,
+                        'foto': r.foto_awal
                     })
             except (ValueError, TypeError):
                 continue
@@ -142,7 +157,6 @@ def create_app(config_name='development'):
     @user_bp.route('/dashboard')
     @login_required
     def dashboard():
-        # JIKA ADMIN MASUK KE SINI, LEMPAR KE DASHBOARD ADMIN
         if current_user.role == 'admin':
             return redirect(url_for('admin.dashboard'))
 
@@ -229,7 +243,6 @@ def create_app(config_name='development'):
         app.register_blueprint(user_bp, url_prefix='/user')
 
     # --- 3. EXTERNAL BLUEPRINTS (Auth & Admin) ---
-    # Memuat blueprint dari folder blueprints yang terlihat di gambar Anda
     try:
         from app.blueprints.auth.routes import auth as auth_blueprint
         if 'auth' not in app.blueprints:

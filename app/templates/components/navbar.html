@@ -65,8 +65,9 @@
     <div class="container d-flex align-items-center">
         <span class="badge bg-danger animate-pulse me-3 shadow-sm">BREAKING NEWS</span>
         <marquee class="small fw-light pt-1" scrollamount="5">
-            {% if latest_alert %}
-                <span class="text-warning fw-bold">[{{ latest_alert.tipe_bencana }}]</span> {{ latest_alert.pesan }} — Terpantau di wilayah {{ latest_alert.wilayah_terdampak }} pada {{ latest_alert.created_at.strftime('%H:%M') }} WIB.
+            {# MENGHUBUNGKAN DENGAN BACKEND BROADCAST #}
+            {% if running_text %}
+                {{ running_text }}
             {% else %}
                 Selamat Datang di Layanan LaporPak! Dishub Jombang — Laporkan kendala marka jalan, lampu PJU mati, atau parkir liar melalui portal resmi ini — Demi kenyamanan transportasi Jombang.
             {% endif %}
@@ -84,14 +85,31 @@
 
     /* Perbaikan Vital: Memaksa gambar tetap di dalam ukuran navbar */
     .navbar-brand img {
-        height: 45px !important; /* Mengunci tinggi agar tidak meluap */
+        height: 45px !important;
         width: auto !important;
         object-fit: contain;
         display: inline-block;
     }
 
-    /* Khusus logo kedua agar lebih kecil sedikit */
     .navbar-brand img[alt="Logo Dishub"] {
         height: 35px !important;
     }
 </style>
+
+<script>
+    // Script untuk update Jam dan Tanggal di Navbar
+    function updateClock() {
+        const now = new Date();
+        const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+        const dateStr = now.toLocaleDateString('id-ID', optionsDate);
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        const dateEl = document.getElementById('date-now');
+        const clockEl = document.getElementById('clock-now');
+
+        if(dateEl) dateEl.innerText = dateStr;
+        if(clockEl) clockEl.innerText = timeStr + " WIB";
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+</script>

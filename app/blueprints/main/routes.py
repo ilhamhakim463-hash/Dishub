@@ -26,36 +26,42 @@ def save_report_photo(file):
     return None
 
 
-# --- LANDING PAGE (SINKRON DENGAN DATA PETA & STATS) ---
+# --- LANDING PAGE (SINKRON DENGAN DATA PETA & STATS & AKTIVITAS) ---
 @main.route('/')
 def index():
     try:
-        # Sinkronisasi statistik dengan dashboard admin
+        # 1. SINKRONISASI TOTAL STATS: Menggunakan filter yang sama dengan Admin (is_archived=False)
         stats = {
-            'total_reports': Report.query.count(),
+            'total_reports': Report.query.filter_by(is_archived=False).count(),
             'total_warga': User.query.filter_by(role='user').count(),
-            'darurat': Report.query.filter_by(status_warna='merah').count(),
-            'sedang': Report.query.filter_by(status_warna='kuning').count(),
-            'selesai': Report.query.filter_by(status_warna='hijau').count()
+            'darurat': Report.query.filter_by(status_warna='merah', is_archived=False).count(),
+            'sedang': Report.query.filter_by(status_warna='kuning', is_archived=False).count(),
+            'selesai': Report.query.filter_by(status_warna='biru', is_archived=False).count()
         }
 
-        # Menarik laporan untuk Pin Peta Landing
+        # 2. AKTIVITAS TERAKHIR: Mengambil 5 user terbaru yang berinteraksi (FIX UNKNOWN ERROR)
+        activities = User.query.order_by(User.last_seen.desc()).limit(5).all()
+
+        # 3. PETA: Menarik laporan untuk Pin Peta Landing
         reports_for_map = Report.query.filter(
             Report.latitude.isnot(None),
             Report.longitude.isnot(None),
             Report.is_archived == False
         ).all()
 
-        # PERBAIKAN: Mengambil hanya 1 alert terbaru yang berstatus AKTIF
-        latest_alert = EmergencyAlert.query.filter_by(is_active=True).order_by(EmergencyAlert.created_at.desc()).first()
+        # 4. ALERT: Mengambil 1 alert terbaru
+        latest_alert = EmergencyAlert.query.order_by(EmergencyAlert.created_at.desc()).first()
 
     except Exception as e:
+        print(f"Error pada Landing Page: {str(e)}")
         stats = {'total_reports': 0, 'total_warga': 0, 'darurat': 0, 'sedang': 0, 'selesai': 0}
+        activities = []
         reports_for_map = []
         latest_alert = None
 
     return render_template('public/landing.html',
                            stats=stats,
+                           user_activities=activities, # Variabel ini WAJIB ada untuk Landing Page
                            alert=latest_alert,
                            reports=reports_for_map,
                            now=datetime.now())
@@ -83,13 +89,14 @@ def create_report():
                 longitude=request.form.get('longitude'),
                 kategori=request.form.get('kategori'),
                 user_id=current_user.id,
-                status_warna='biru',
+                status_warna='biru', # Default awal
                 foto_awal=save_report_photo(f1),
                 foto_2=save_report_photo(f2),
                 foto_3=save_report_photo(f3),
                 created_at=datetime.now()
             )
 
+            # Memberikan poin kepada warga
             current_user.poin_warga = (current_user.poin_warga or 0) + 5
 
             db.session.add(new_report)
@@ -209,7 +216,7 @@ def map_markers():
         'lat': r.latitude,
         'lng': r.longitude,
         'warna': r.status_warna or 'biru',
-        'status': 'Selesai' if r.status_warna == 'hijau' else 'Proses',
+        'status': 'Selesai' if r.status_warna == 'biru' else 'Proses',
         'kategori': r.kategori or 'Umum',
         'pelapor': r.author.nama if r.author else 'Anonim',
         'foto': r.foto_awal,
