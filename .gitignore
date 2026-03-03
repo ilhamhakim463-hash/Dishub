@@ -40,3 +40,6 @@ config.py.bak*
 
 # Server-only static images
 app/static/img/
+
+# ignore runtime avatar uploads
+app/static/uploads/avatars/*
