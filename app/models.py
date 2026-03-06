@@ -8,7 +8,6 @@ class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     nama = db.Column(db.String(100), nullable=False)
-    nik = db.Column(db.String(16), unique=True, nullable=False)
     no_wa = db.Column(db.String(15), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True)
 

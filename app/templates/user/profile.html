@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Profil{% endblock %}
+{% block title %}Profil - LaporPak Jombang Enterprise{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -27,8 +27,8 @@
 
                     <div class="row text-center mb-3">
                         <div class="col-6 border-end" style="border-color:rgba(255,255,255,0.2) !important;">
-                            <small class="text-white-50 d-block">NIK</small>
-                            <span class="fw-bold">{{ current_user.nik if current_user.nik else '-' }}</span>
+                            <small class="text-white-50 d-block">WhatsApp</small>
+                            <span class="fw-bold" style="font-size: 0.85rem;">{{ current_user.no_wa if current_user.no_wa else '-' }}</span>
                         </div>
                         <div class="col-6">
                             <small class="text-white-50 d-block">Poin</small>
@@ -52,21 +52,21 @@
                     <form method="POST" enctype="multipart/form-data" action="{{ url_for('user.profile') }}">
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Ubah Foto Profil</label>
-                            <input type="file" class="form-control" name="foto_profil" accept="image/*">
+                            <input type="file" class="form-control bg-light border-0" name="foto_profil" accept="image/*">
                             <div class="form-text text-muted">Format: JPG, PNG, atau WEBP.</div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">Nama Lengkap</label>
-                                <input type="text" class="form-control" name="nama" value="{{ current_user.nama }}" required>
+                                <input type="text" class="form-control bg-light border-0" name="nama" value="{{ current_user.nama }}" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">Email</label>
-                                <input type="email" class="form-control" name="email" value="{{ current_user.email or '' }}">
+                                <input type="email" class="form-control bg-light border-0" name="email" value="{{ current_user.email or '' }}">
                             </div>
                         </div>
-                        <div class="d-grid d-md-block">
-                            <button type="submit" class="btn btn-primary px-5 shadow-sm">Simpan Perubahan</button>
+                        <div class="d-grid d-md-block mt-2">
+                            <button type="submit" class="btn btn-primary px-5 shadow-sm fw-bold">Simpan Perubahan</button>
                         </div>
                     </form>
 
@@ -78,8 +78,8 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">Password Lama</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" name="current_password" id="old_pass" placeholder="Password Lama" required>
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePass('old_pass', 'old_icon')">
+                                    <input type="password" class="form-control bg-light border-0" name="current_password" id="old_pass" placeholder="Password Lama" required>
+                                    <button class="btn btn-light border-0 px-3" type="button" onclick="togglePass('old_pass', 'old_icon')">
                                         <i class="bi bi-eye" id="old_icon"></i>
                                     </button>
                                 </div>
@@ -87,14 +87,14 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">Password Baru</label>
                                 <div class="input-group">
-                                    <input type="password" class="form-control" name="new_password" id="new_pass" placeholder="Password Baru" required>
-                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePass('new_pass', 'new_icon')">
+                                    <input type="password" class="form-control bg-light border-0" name="new_password" id="new_pass" placeholder="Password Baru" required>
+                                    <button class="btn btn-light border-0 px-3" type="button" onclick="togglePass('new_pass', 'new_icon')">
                                         <i class="bi bi-eye" id="new_icon"></i>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-outline-warning shadow-sm">Update Password</button>
+                        <button type="submit" class="btn btn-outline-warning shadow-sm fw-bold">Update Password</button>
                     </form>
                 </div>
             </div>

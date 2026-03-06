@@ -8,7 +8,7 @@ import logging
 
 auth = Blueprint('auth', __name__)
 
-# --- FUNGSI PELACAK ONLINE (TIMPAAN DARI FOTO) ---
+# --- FUNGSI PELACAK ONLINE ---
 @auth.before_app_request
 def before_request():
     """Memperbarui waktu aktivitas terakhir jika user sedang login"""
@@ -28,28 +28,24 @@ def register():
 
     if request.method == 'POST':
         nama = request.form.get('nama')
-        nik = request.form.get('nik')
         no_wa = request.form.get('no_wa')
         email = request.form.get('email')
         kecamatan = request.form.get('kecamatan')
         password = request.form.get('password')
 
-        if not all([nama, nik, no_wa, kecamatan, password]):
+        # REVISI: NIK dihapus dari pengecekan wajib
+        if not all([nama, no_wa, kecamatan, password]):
             flash('Semua kolom bertanda * wajib diisi!', 'danger')
             return redirect(url_for('auth.register'))
 
-        # Validasi NIK Jombang
-        if not nik.startswith('3517'):
-            flash('Pendaftaran khusus warga dengan NIK Jombang (3517)!', 'danger')
+        # REVISI: Pengecekan duplikasi kini berdasarkan Nomor WhatsApp (karena NIK sudah tidak ada)
+        if User.query.filter_by(no_wa=no_wa).first():
+            flash('Nomor WhatsApp sudah terdaftar!', 'warning')
             return redirect(url_for('auth.register'))
 
-        if User.query.filter_by(nik=nik).first():
-            flash('NIK sudah terdaftar dalam sistem!', 'warning')
-            return redirect(url_for('auth.register'))
-
+        # REVISI: Inisialisasi User baru tanpa parameter NIK
         new_user = User(
             nama=nama,
-            nik=nik,
             no_wa=no_wa,
             email=email if email else None,
             kecamatan=kecamatan,
@@ -66,6 +62,7 @@ def register():
             return redirect(url_for('auth.login'))
         except Exception as e:
             db.session.rollback()
+            logging.error(f"Error pada registrasi: {str(e)}")
             flash('Terjadi kesalahan database. Silakan coba lagi.', 'danger')
 
     return render_template('auth/register.html')
@@ -81,9 +78,8 @@ def login():
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
 
-        # Cari user berdasarkan NIK, No WA, atau Email
+        # REVISI: Cari user hanya berdasarkan No WA atau Email (NIK dihapus dari filter)
         user = User.query.filter(
-            (User.nik == login_id) |
             (User.no_wa == login_id) |
             (User.email == login_id)
         ).first()
@@ -108,7 +104,8 @@ def login():
             flash(f'Selamat datang kembali, {user.nama}!', 'success')
             return redirect(url_for('user.dashboard'))
         else:
-            flash('Login gagal! Cek NIK/WA/Email dan password Anda.', 'danger')
+            # REVISI: Pesan error disesuaikan (Tanpa menyebut NIK)
+            flash('Login gagal! Cek WhatsApp/Email dan password Anda.', 'danger')
 
     return render_template('auth/login.html')
 

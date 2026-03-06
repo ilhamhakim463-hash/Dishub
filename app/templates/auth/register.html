@@ -52,20 +52,14 @@
                         <i class="bi bi-person-plus-fill text-primary" style="font-size: 2rem"></i>
                     </div>
                     <h3 class="fw-bold">Registrasi Warga</h3>
-                    <p class="text-muted small">Lengkapi data diri sesuai KTP untuk akses penuh</p>
+                    <p class="text-muted small">Lengkapi data diri Anda untuk akses penuh layanan</p>
                 </div>
 
                 <form method="POST">
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label small fw-bold">NAMA LENGKAP *</label>
-                            <input type="text" class="form-control border-0 bg-light py-2 px-3" name="nama" placeholder="Sesuai KTP" required>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold">NIK (16 DIGIT) *</label>
-                            <input type="text" class="form-control border-0 bg-light py-2 px-3" name="nik" maxlength="16" pattern="3517[0-9]{12}" placeholder="3517..." required>
-                            <div class="form-text x-small text-primary">Khusus wilayah Jombang (3517)</div>
+                            <input type="text" class="form-control border-0 bg-light py-2 px-3" name="nama" placeholder="Masukkan nama lengkap sesuai identitas" required>
                         </div>
 
                         <div class="col-md-6 mb-3">
@@ -74,7 +68,7 @@
                             <div class="form-text x-small">Untuk notifikasi darurat (EWS)</div>
                         </div>
 
-                        <div class="col-md-12 mb-3">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label small fw-bold">EMAIL (OPSIONAL)</label>
                             <input type="email" class="form-control border-0 bg-light py-2 px-3" name="email" placeholder="nama@email.com">
                         </div>
@@ -83,13 +77,27 @@
                             <label class="form-label small fw-bold">KECAMATAN *</label>
                             <select class="form-select border-0 bg-light py-2 px-3" name="kecamatan" required>
                                 <option value="" disabled selected>Pilih Kecamatan</option>
-                                <option>Bandar Kedung Mulyo</option><option>Bareng</option><option>Diwek</option>
-                                <option>Gudo</option><option>Jombang</option><option>Jogoroto</option>
-                                <option>Kabuh</option><option>Kesamben</option><option>Kudu</option>
-                                <option>Megaluh</option><option>Mojoagung</option><option>Mojowarno</option>
-                                <option>Ngoro</option><option>Ngusikan</option><option>Perak</option>
-                                <option>Peterongan</option><option>Ploso</option><option>Plandaan</option>
-                                <option>Sumobito</option><option>Tembelang</option><option>Wonosalam</option>
+                                <option value="Bandar Kedungmulyo">Bandar Kedungmulyo</option>
+                                <option value="Bareng">Bareng</option>
+                                <option value="Diwek">Diwek</option>
+                                <option value="Gudo">Gudo</option>
+                                <option value="Jogoroto">Jogoroto</option>
+                                <option value="Jombang">Jombang</option>
+                                <option value="Kabuh">Kabuh</option>
+                                <option value="Kesamben">Kesamben</option>
+                                <option value="Kudu">Kudu</option>
+                                <option value="Megaluh">Megaluh</option>
+                                <option value="Mojoagung">Mojoagung</option>
+                                <option value="Mojowarno">Mojowarno</option>
+                                <option value="Ngoro">Ngoro</option>
+                                <option value="Ngusikan">Ngusikan</option>
+                                <option value="Perak">Perak</option>
+                                <option value="Peterongan">Peterongan</option>
+                                <option value="Plandaan">Plandaan</option>
+                                <option value="Ploso">Ploso</option>
+                                <option value="Sumobito">Sumobito</option>
+                                <option value="Tembelang">Tembelang</option>
+                                <option value="Wonosalam">Wonosalam</option>
                             </select>
                         </div>
 
@@ -137,7 +145,7 @@
                 </form>
 
                 <div class="text-center mt-5">
-                    <p class="text-muted x-small">© 2026 Diskominfo Kabupaten Jombang. Seluruh data dilindungi sistem keamanan Enterprise.</p>
+                    <p class="text-muted x-small">© 2026 Dishub Kabupaten Jombang. Seluruh data dilindungi sistem keamanan Enterprise.</p>
                 </div>
             </div>
         </div>
@@ -159,17 +167,14 @@
 </script>
 
 <style>
-    /* Reset & Layout */
     .register-wrapper { min-height: 100vh; overflow-x: hidden; }
     .x-small { font-size: 0.75rem; }
     .bg-light { background-color: #f8f9fa !important; }
 
-    /* Input Styling */
     .form-control, .form-select {
         border-radius: 10px;
         transition: all 0.3s ease;
     }
-    /* Menyesuaikan border radius untuk input group (fitur mata) */
     .input-group .form-control {
         border-top-right-radius: 0;
         border-bottom-right-radius: 0;
@@ -186,7 +191,6 @@
         border: 1px solid #0d6efd !important;
     }
 
-    /* Button Animation */
     .btn-primary {
         border-radius: 12px;
         transition: all 0.3s ease;
@@ -196,10 +200,8 @@
         box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
     }
 
-    /* Utility */
     .z-index-1 { z-index: 1; }
 
-    /* Mobile adjustments */
     @media (max-width: 991.98px) {
         .bg-white { border-radius: 0; }
     }

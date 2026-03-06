@@ -6,7 +6,7 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center mb-4 gap-3">
         <div>
             <h2 class="fw-bold mb-1 text-gradient-primary">Manajemen Database Warga</h2>
-            <p class="text-muted mb-0">Pantau hak akses, data identitas, dan status aktivitas warga.</p>
+            <p class="text-muted mb-0">Pantau hak akses, data kontak, dan status aktivitas warga Jombang.</p>
         </div>
 
         <div class="d-flex flex-wrap gap-3">
@@ -60,7 +60,7 @@
                     <div class="input-group input-group-merge">
                         <span class="input-group-text border-0 bg-light px-3"><i class="bi bi-search text-muted"></i></span>
                         <input type="text" name="search" class="form-control border-0 bg-light py-2"
-                               placeholder="Cari berdasarkan Nama, NIK, atau Kecamatan..."
+                               placeholder="Cari berdasarkan Nama, No. WhatsApp, atau Kecamatan..."
                                value="{{ request.args.get('search', '') }}">
                     </div>
                 </div>
@@ -79,7 +79,7 @@
                 <thead class="bg-light-blue text-muted small text-uppercase">
                     <tr>
                         <th class="ps-4 py-3 border-0">Profil Warga</th>
-                        <th class="border-0">NIK & UID</th>
+                        <th class="border-0">Identitas Sistem</th>
                         <th class="border-0 text-center">Kecamatan</th>
                         <th class="border-0 text-center">Aktivitas Terakhir</th>
                         <th class="border-0 text-center">Poin</th>
@@ -103,8 +103,8 @@
                         </td>
                         <td>
                             <div style="min-width: 150px;">
-                                <div class="small fw-bold text-dark mb-1">{{ user.nik or '---' }}</div>
-                                <span class="badge bg-light text-primary border border-primary-soft">ID #{{ user.id }}</span>
+                                <div class="small fw-bold text-dark mb-1">{{ user.email if user.email else 'Email: -' }}</div>
+                                <span class="badge bg-light text-primary border border-primary-soft">UID: #{{ user.id }}</span>
                             </div>
                         </td>
                         <td class="text-center">
@@ -216,7 +216,6 @@
 </div>
 
 <style>
-    /* Style tetap sama seperti sebelumnya */
     :root {
         --primary-soft: rgba(13, 110, 253, 0.1);
         --success-soft: rgba(40, 167, 69, 0.1);
@@ -247,14 +246,14 @@
 </style>
 
 <script>
+// Script tetap sama karena tidak menggunakan NIK dalam logikanya
 let resetModal, activityModal;
 
-// Fungsi untuk konversi Waktu UTC ke Lokal WIB
 function convertUTCToLocal() {
     document.querySelectorAll('.local-time').forEach(el => {
         const utcDate = el.getAttribute('data-utc');
         if (utcDate) {
-            const date = new Date(utcDate + 'Z'); // Tambah 'Z' untuk menandakan UTC
+            const date = new Date(utcDate + 'Z');
             if (!isNaN(date)) {
                 const day = String(date.getDate()).padStart(2, '0');
                 const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -270,50 +269,38 @@ function convertUTCToLocal() {
 document.addEventListener('DOMContentLoaded', () => {
     resetModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
     activityModal = new bootstrap.Modal(document.getElementById('activityLogModal'));
-    convertUTCToLocal(); // Jalankan konversi saat halaman dimuat
+    convertUTCToLocal();
 });
 
-// Sisanya adalah fungsi toggle, reset, dan log yang diperbaiki
 async function viewActivityLog(id, nama) {
     const logContent = document.getElementById('logContent');
     logContent.innerHTML = '<div class="text-center py-4 text-muted"><div class="spinner-border spinner-border-sm text-primary me-2"></div>Memuat log aktivitas...</div>';
     activityModal.show();
-
     try {
         const response = await fetch(`/admin/user/activity-log/${id}`);
         const result = await response.json();
-
         if (result.status === 'success' && result.logs && result.logs.length > 0) {
             let html = '<div class="list-group list-group-flush">';
             result.logs.forEach(log => {
                 const statusColor = log.status.toLowerCase() === 'online' ? 'text-success' : 'text-danger';
-
-                // Konversi waktu log dari UTC ke Lokal
                 const date = new Date(log.timestamp_detail + 'Z');
                 const localString = date.toLocaleString('id-ID', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit', second: '2-digit'
                 });
-
-                html += `
-                    <div class="list-group-item border-0 px-0 py-3 border-bottom">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="bi bi-circle-fill ${statusColor} me-2" style="font-size: 0.6rem;"></i>
-                                <span class="fw-bold text-dark">${log.status}</span>
+                html += `<div class="list-group-item border-0 px-0 py-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div><i class="bi bi-circle-fill ${statusColor} me-2" style="font-size: 0.6rem;"></i><span class="fw-bold text-dark">${log.status}</span></div>
+                                <small class="text-muted fw-medium">${localString}</small>
                             </div>
-                            <small class="text-muted fw-medium">${localString}</small>
-                        </div>
-                    </div>`;
+                         </div>`;
             });
             html += '</div>';
             logContent.innerHTML = html;
         } else {
-            logContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-info-circle d-block fs-2 mb-2"></i>Belum ada riwayat aktivitas tercatat.</div>';
+            logContent.innerHTML = '<div class="text-center py-5 text-muted"><i class="bi bi-info-circle d-block fs-2 mb-2"></i>Belum ada riwayat aktivitas.</div>';
         }
-    } catch (e) {
-        logContent.innerHTML = '<div class="text-center py-5 text-danger">Gagal memuat data.</div>';
-    }
+    } catch (e) { logContent.innerHTML = '<div class="text-center py-5 text-danger">Gagal memuat data.</div>'; }
 }
 
 async function submitResetPassword() {
@@ -337,10 +324,7 @@ async function submitResetPassword() {
             btnSubmit.disabled = false;
             btnSubmit.innerText = "Simpan Perubahan";
         }
-    } catch (e) {
-        alert('Gagal menghubungi server');
-        btnSubmit.disabled = false;
-    }
+    } catch (e) { alert('Gagal menghubungi server'); btnSubmit.disabled = false; }
 }
 
 async function toggleUser(id) {
